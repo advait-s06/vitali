@@ -1,12 +1,9 @@
-import Button from '@/components/Button';
 import { StyleSheet, View } from "react-native";
 
 export default function Calendar() {
     return (
         <View style={styles.container}>
-            <View style={styles.footerContainer}>
-                <Button label = "meow" />
-            </View>
+            
         </View>
     )
 }
@@ -14,15 +11,8 @@ export default function Calendar() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#e9f9ff',
+    backgroundColor: '#c2ecc7',
     alignItems: 'center',
     justifyContent: 'center',
-  },
-  imageContainer: {
-    flex: 1,
-  },
-  footerContainer: {
-    flex: 1 / 3,
-    alignItems: 'center'
   },
 });

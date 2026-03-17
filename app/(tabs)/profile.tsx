@@ -1,5 +1,6 @@
 import Button from '@/components/Button';
 import ImageViewer from '@/components/ImageViewer';
+import PopUp from '@/components/PopUp';
 import * as ImagePicker from 'expo-image-picker';
 import { useState } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
@@ -26,15 +27,17 @@ export default function ProfileScreen() {
         <ImageViewer theme='profile' imgSource = {PlaceholderImage} selectedImage={selectedImage}/>
       </View>
       <View style = {styles.usernameContainer}>
-        <Text style = {styles.text}>
+        <Text style = {styles.headerText}>
           @VitaliUser
         </Text>
       </View>
       <View style={styles.footerContainer}>
         <Button theme="primary" label="Edit profile picture" onPress = {pickImageAsync} />
       </View>
+      <View style={styles.aboutUsContainer}>
+        <PopUp header="About Us" body="Vitali is a student made project by UCSC students. Our mission is to prioritize consistency health for working adults who often lead unpredictable lives."/>
+      </View>
     </View>
-
   );
 }
 
@@ -45,7 +48,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
-  text: {
+  headerText: {
     color: '#000000',
     fontSize: 24
   },
@@ -53,14 +56,20 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     flex: 1/5,
     alignItems: 'center',
-    marginTop: -150,
+    marginTop: -60,
   },
   usernameContainer: {
     flex: 1/12,
     alignItems: 'center',
   },
   footerContainer: {
-    flex: 1/4,
+    flex: 1/8,
     alignItems: 'flex-start',
   },
+  aboutUsContainer: {
+    flex: 1/4,
+    alignItems: 'flex-end',
+    backgroundColor: '#c2ecc7',
+    borderRadius: 45
+  }
 });
