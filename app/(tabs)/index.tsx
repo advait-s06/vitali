@@ -6,7 +6,7 @@ import PlantList from '@/components/PlantList';
 import PlantPicker from '@/components/PlantPicker';
 import PlantSprite from '@/components/PlantSprite';
 import { useState } from 'react';
-import { ImageSourcePropType, StyleSheet, Text, View } from "react-native";
+import { Alert, ImageSourcePropType, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 
 export default function Index() {
   const [isPetModalVisible, setIsPetModalVisible] = useState<boolean>(false);
