@@ -47,8 +47,8 @@ const onPlantModalClose = () => {
         <ModalButton label = "Plant" onPress={onChangePlant}/>
       </View>
           <View style={styles.ecosystemContainer}>
-            {pickedPet && <PetSprite imageSize={200} stickerSource={pickedPet}/>}
-            {pickedPlant && <PlantSprite imageSize={100} plantSource={pickedPlant}/>}
+            {pickedPet && <PetSprite imageSize={250} stickerSource={pickedPet}/>}
+            {pickedPlant && <PlantSprite imageSize={200} plantSource={pickedPlant}/>}
           </View>
       <PetPicker isVisible={isPetModalVisible} onClose={onPetModalClose}>
         <PetList onSelect={setPickedPet} onCloseModal={onPetModalClose} />

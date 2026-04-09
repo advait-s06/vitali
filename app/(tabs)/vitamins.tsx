@@ -96,7 +96,7 @@ export default function Vitamins() {
             })}
           </View>
           <View style={styles.timeContainer}>
-              <Text>Scheduled Times:</Text>
+              <Text style={styles.subHeader}>Scheduled Times:</Text>
               <View style={styles.chipsContainer}>
                 {selectedTimes.map((time, index) => (
                   <View key={index.toString()} style={styles.chip}>

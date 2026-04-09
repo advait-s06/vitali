@@ -9,12 +9,12 @@ type Props = {
 
 export default function PlantList({ onSelect, onCloseModal }: Props) {
   const [emoji] = useState<ImageSourcePropType[]>([
-    require("../assets/images/emoji1.png"),
-    require("../assets/images/emoji2.png"),
-    require("../assets/images/emoji3.png"),
-    require("../assets/images/emoji4.png"),
-    require("../assets/images/emoji5.png"),
-    require("../assets/images/emoji6.png"),
+    require("../assets/images/Aloe1 copy.png"),
+    require("../assets/images/Aloe2 copy.png"),
+    require("../assets/images/Chamo1 copy.png"),
+    require("../assets/images/Chamo2 copy.png"),
+    require("../assets/images/Lav1 copy.png"),
+    require("../assets/images/Lav2 copy.png"),
   ]);
 
   return (

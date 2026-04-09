@@ -8,7 +8,7 @@ type Props = {
 
 export default function PetSprite({ imageSize, stickerSource }: Props) {
   return (
-    <View style={{ top: -100 }}>
+    <View style={{ top: -60, right: -45 }}>
       <Image source={stickerSource} style={{ width: imageSize, height: imageSize }} />
     </View>
   );

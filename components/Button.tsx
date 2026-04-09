@@ -63,4 +63,9 @@ const styles = StyleSheet.create({
     fontSize: 16,
     textAlign: 'center'
   },
+  saveButtonContainer: {
+    width: 250,
+    height: 75,
+    padding: 3
+  }
 });

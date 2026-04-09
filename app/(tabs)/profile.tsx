@@ -4,7 +4,7 @@ import PopUp from '@/components/PopUp';
 import * as ImagePicker from 'expo-image-picker';
 import { useState } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
-const PlaceholderImage = require('@/assets/images/placeholder.png')
+const PlaceholderImage = require('@/assets/images/profileicon.jpg')
 
 export default function ProfileScreen() {
   const [selectedImage, setSelectedImage] = useState<string | undefined>(undefined);

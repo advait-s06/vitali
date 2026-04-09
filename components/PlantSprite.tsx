@@ -8,7 +8,7 @@ type Props = {
 
 export default function PlantSprite({ imageSize, plantSource }: Props) {
   return (
-    <View style={{ top: -100 }}>
+    <View style={{ top: -80, left: -15 }}>
       <Image source={plantSource} style={{ width: imageSize, height: imageSize }} />
     </View>
   );
