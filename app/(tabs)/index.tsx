@@ -13,8 +13,11 @@ export default function Index() {
   const [isPlantModalVisible, setIsPlantModalVisible] = useState<boolean>(false);
   const [pickedPet, setPickedPet] = useState<ImageSourcePropType | undefined>(undefined);
   const [pickedPlant, setPickedPlant] = useState<ImageSourcePropType | undefined>(undefined);
-  const PlaceholderImage = require('@/assets/images/placeholder.png')
-  const EcosystemBase = require('@/assets/images/base-ecosystem.png')
+  const [petName, setPetName] = useState<string>('Pet Name');
+  const [plantName, setPlantName] = useState<string>('Plant Name');
+
+  let petLastTap = 0;
+  let plantLastTap = 0;
 
 const onChangePet = () => {
   setIsPetModalVisible(true);
@@ -32,15 +35,53 @@ const onPlantModalClose = () => {
   setIsPlantModalVisible(false);
 }
 
+const handlePetDoubleTap = () => {
+  const now = Date.now();
+  if (now - petLastTap < 300) {
+    Alert.prompt(
+      'Edit Pet Name',
+      'Enter new name:',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        { text: 'OK', onPress: (text: string | undefined) => setPetName(text || petName) }
+      ],
+      'plain-text',
+      petName
+    );
+  }
+  petLastTap = now;
+};
+
+const handlePlantDoubleTap = () => {
+  const now = Date.now();
+  if (now - plantLastTap < 300) {
+    Alert.prompt(
+      'Edit Plant Name',
+      'Enter new name:',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        { text: 'OK', onPress: (text: string | undefined) => setPlantName(text || plantName) }
+      ],
+      'plain-text',
+      plantName
+    );
+  }
+  plantLastTap = now;
+};
+
   return (
     <View style={styles.container}>
       <View style={styles.headerContainer}>
-        <Text style={styles.headerText}>
-          Pet Name
-        </Text>
-        <Text style={styles.text}>
-          With Plant Name
-        </Text>
+        <TouchableOpacity onPress={handlePetDoubleTap}>
+          <Text style={styles.headerText}>
+            {petName}
+          </Text>
+        </TouchableOpacity>
+        <TouchableOpacity onPress={handlePlantDoubleTap}>
+          <Text style={styles.text}>
+            With {plantName}
+          </Text>
+        </TouchableOpacity>
       </View>
       <View style ={styles.rightCornerContainer}>
         <ModalButton label = "Pet" onPress={onChangePet}/>
