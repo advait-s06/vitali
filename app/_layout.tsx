@@ -1,6 +1,6 @@
+import { VitaminsProvider } from '@/app/VitaminContext';
 import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
-import { VitaminsProvider } from '../VitaminsContext';
 
 export default function RootLayout() {
   return (

@@ -46,7 +46,7 @@ export default function TabLayout() {
         }}
       />
       <Tabs.Screen 
-        name="vitamins"
+        name="vitaminsprovider"
         options={{
           title: 'Vitamins',
           tabBarIcon: ({ color, focused }) => (

@@ -1,6 +1,6 @@
+import { useVitamins } from '@/app/VitaminContext';
 import React, { useState } from 'react';
 import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
-import { useVitamins } from '../../VitaminsContext';
 
 export default function Calendar() {
   const [currentDate, setCurrentDate] = useState(new Date());

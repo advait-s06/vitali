@@ -1,9 +1,9 @@
+import type { Supplement } from '@/app/VitaminContext';
+import { useVitamins } from '@/app/VitaminContext';
 import Button from '@/components/Button';
 import DateTimePicker, { DateTimePickerEvent } from '@react-native-community/datetimepicker';
 import React, { useState } from 'react';
 import { Alert, FlatList, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
-import type { Supplement } from '../../VitaminsContext';
-import { useVitamins } from '../../VitaminsContext';
 
 export default function Vitamins() {
   const [selectedDays, setSelectedDays] = useState<string[]>([]);
