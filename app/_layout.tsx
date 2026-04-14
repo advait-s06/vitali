@@ -1,4 +1,4 @@
-import { VitaminsProvider } from '@/app/VitaminContext';
+import { VitaminsProvider } from '@/VitaminContext';
 import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 

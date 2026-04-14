@@ -1,5 +1,5 @@
-import type { Supplement } from '@/app/VitaminContext';
-import { useVitamins } from '@/app/VitaminContext';
+import type { Supplement } from '@/VitaminContext';
+import { useVitamins } from '@/VitaminContext';
 import Button from '@/components/Button';
 import DateTimePicker, { DateTimePickerEvent } from '@react-native-community/datetimepicker';
 import React, { useState } from 'react';
