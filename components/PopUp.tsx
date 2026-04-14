@@ -1,22 +1,19 @@
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, Text, View } from 'react-native';
 
 type Props = {
     header: string;
     body: string;
-    onPress?: () => void;
 }
 
-export default function PopUp({ header, body, onPress }: Props) {
+export default function PopUp({ header, body }: Props) {
     return (
         <View style={styles.popUpContainer}>
-            <Pressable onPress = {() => alert("Button works")}>
                 <Text style={styles.headerText}>
                     {header}
                 </Text>
                 <Text style={styles.text}>
                     {body}
                 </Text>
-            </Pressable>
         </View>
     )
 }
