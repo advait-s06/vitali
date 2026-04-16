@@ -18,14 +18,14 @@ export default function Pet() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#83dafa', // matches the home tab background
+    backgroundColor: '#b4a3ff', // matches the home tab background
   },
   ecosystemContainer: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-    alignItems: 'center',
-    flex: 1,
-    gap: 16,
-    marginTop: 120,
-  },
+      flex: 1,
+      flexDirection: 'row',
+      alignItems: 'flex-end',
+      justifyContent: 'center',
+      marginTop: 475,
+      backgroundColor: '#d49966'
+    },
 });
