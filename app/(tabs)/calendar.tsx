@@ -1,16 +1,27 @@
-import { useVitamins } from '@/VitaminContext';
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import type { Supplement } from '../../services/supplements';
+import { getSupplements } from '../../services/supplements';
+
 
 export default function Calendar() {
   const [currentDate, setCurrentDate] = useState(new Date());
   const [checked, setChecked] = useState<{ [id: string]: boolean }>({});
-  const { supplements } = useVitamins();
+  const [supplements, setSupplements] = useState<Supplement[]>([]);
   const year = currentDate.getFullYear();
   const month = currentDate.getMonth();
   const firstDay = new Date(year, month, 1);
   const lastDay = new Date(year, month + 1, 0);
-  const days = [];
+  const days: (Date | null)[] = [];
+
+  useEffect(() => {
+    async function loadSupplements() {
+      const data = await getSupplements();
+      setSupplements(data || []);
+    }
+
+    loadSupplements();
+  }, []);
 
   for (let i = 0; i < firstDay.getDay(); i++) {
     days.push(null);
@@ -23,19 +34,12 @@ export default function Calendar() {
 
   const startOfWeek = new Date(currentDate);
   startOfWeek.setDate(currentDate.getDate() - currentDate.getDay());
-  const weekDays = [];
+  const weekDays: Date[] = [];
   for (let i = 0; i < 7; i++) {
     const day = new Date(startOfWeek);
     day.setDate(startOfWeek.getDate() + i);
     weekDays.push(day);
   }
-
-  const goToPreviousMonth = () => {
-    setCurrentDate(new Date(year, month - 1, 1));
-  };
-  const goToNextMonth = () => {
-    setCurrentDate(new Date(year, month + 1, 1));
-  };
   const goToPreviousWeek = () => {
     const prev = new Date(currentDate);
     prev.setDate(currentDate.getDate() - 7);
@@ -117,7 +121,9 @@ export default function Calendar() {
               </TouchableOpacity>
               <View style={{ alignItems: 'flex-start' }}>
                 <Text style={{fontSize: 18, textDecorationLine: checked[sup.id] ? 'line-through' : 'none'}}>💊 {sup.name}</Text>
-                <Text style={{fontSize: 14, color: '#028146'}}>Times: {sup.times.length > 0 ? sup.times.join(', ') : 'Anytime'}</Text>
+                <Text style={{ fontSize: 14, color: '#028146' }}>
+                  Times: {sup.times.length > 0 ? sup.times.join(', ') : 'Anytime'}
+                </Text>               
                 <Text style={{fontSize: 14, color: '#028146'}}>With Food: {sup.withFood ? 'Yes' : 'No'}</Text>
               </View>
             </View>
