@@ -5,19 +5,18 @@ import PetSprite from '@/components/PetSprite';
 import PlantList from '@/components/PlantList';
 import PlantPicker from '@/components/PlantPicker';
 import PlantSprite from '@/components/PlantSprite';
-import { useState } from 'react';
-import { Alert, ImageSourcePropType, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { useVitamins } from '@/VitaminContext';
+import React from 'react';
+import { Alert, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 
 export default function Index() {
-  const [isPetModalVisible, setIsPetModalVisible] = useState<boolean>(false);
-  const [isPlantModalVisible, setIsPlantModalVisible] = useState<boolean>(false);
-  const [pickedPet, setPickedPet] = useState<ImageSourcePropType | undefined>(undefined);
-  const [pickedPlant, setPickedPlant] = useState<ImageSourcePropType | undefined>(undefined);
-  const [petName, setPetName] = useState<string>('Pet Name');
-  const [plantName, setPlantName] = useState<string>('Plant Name');
-
-  let petLastTap = 0;
-  let plantLastTap = 0;
+  const [isPetModalVisible, setIsPetModalVisible] = React.useState(false);
+  const [isPlantModalVisible, setIsPlantModalVisible] = React.useState(false);
+  const { pickedPet, setPickedPet, pickedPlant, setPickedPlant } = useVitamins();
+  const [petName, setPetName] = React.useState('Pet Name');
+  const [plantName, setPlantName] = React.useState('Plant Name');
+  const petLastTap = React.useRef(0);
+  const plantLastTap = React.useRef(0);
 
 const onChangePet = () => {
   setIsPetModalVisible(true);
@@ -37,7 +36,7 @@ const onPlantModalClose = () => {
 
 const handlePetDoubleTap = () => {
   const now = Date.now();
-  if (now - petLastTap < 300) {
+  if (now - petLastTap.current < 300) {
     Alert.prompt(
       'Edit Pet Name',
       'Enter new name:',
@@ -49,12 +48,12 @@ const handlePetDoubleTap = () => {
       petName
     );
   }
-  petLastTap = now;
+  petLastTap.current = now;
 };
 
 const handlePlantDoubleTap = () => {
   const now = Date.now();
-  if (now - plantLastTap < 300) {
+  if (now - plantLastTap.current < 300) {
     Alert.prompt(
       'Edit Plant Name',
       'Enter new name:',
@@ -66,7 +65,7 @@ const handlePlantDoubleTap = () => {
       plantName
     );
   }
-  plantLastTap = now;
+  plantLastTap.current = now;
 };
 
   return (
