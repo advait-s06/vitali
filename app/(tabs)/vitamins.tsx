@@ -802,7 +802,7 @@ const styles = StyleSheet.create({
   },
   pickerCard: {
     marginTop: 16,
-    backgroundColor: '#f7fcf7',
+    backgroundColor: '#135f2a',
     borderRadius: 20,
     padding: 12,
     borderWidth: 1,
