@@ -1,16 +1,20 @@
 import PetSprite from '@/components/PetSprite';
 import PlantSprite from '@/components/PlantSprite';
 import { useVitamins } from '@/VitaminContext';
-import { StyleSheet, View } from 'react-native';
+import { Image, StyleSheet, View } from 'react-native';
+const healthBar = require('@/assets/images/Healthbar.png')
 
 export default function Pet() {
   const { pickedPet, pickedPlant } = useVitamins();
   return (
     <View style={styles.container}>
-      <View style={styles.ecosystemContainer}>
-        {pickedPet && <PetSprite imageSize={250} stickerSource={pickedPet} />}
-        {pickedPlant && <PlantSprite imageSize={200} plantSource={pickedPlant} />}
-      </View>
+        <View style={styles.headerContainer}>
+          <Image source={healthBar} style = {styles.healthbar}/>
+        </View>
+        <View style={styles.ecosystemContainer}>
+          {pickedPet && <PetSprite imageSize={250} stickerSource={pickedPet} />}
+          {pickedPlant && <PlantSprite imageSize={200} plantSource={pickedPlant} />}
+        </View>
     </View>
   );
 }
@@ -26,6 +30,15 @@ const styles = StyleSheet.create({
       alignItems: 'flex-end',
       justifyContent: 'center',
       marginTop: 475,
-      backgroundColor: '#d49966'
+      backgroundColor: '#bbbbbb'
     },
+  headerContainer: {
+    flex: 1/6,
+    marginTop: 40,
+    alignItems: 'center'
+  },
+  healthbar: {
+    width: 399,
+    height: 274,
+  }
 });

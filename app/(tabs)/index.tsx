@@ -6,8 +6,10 @@ import PlantList from '@/components/PlantList';
 import PlantPicker from '@/components/PlantPicker';
 import PlantSprite from '@/components/PlantSprite';
 import { useVitamins } from '@/VitaminContext';
+import { ImageBackground } from 'expo-image';
 import React from 'react';
 import { Alert, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+const ecoBackground = require('@/assets/images/Background.png')
 
 export default function Index() {
   const [isPetModalVisible, setIsPetModalVisible] = React.useState(false);
@@ -70,32 +72,36 @@ const handlePlantDoubleTap = () => {
 
   return (
     <View style={styles.container}>
-      <View style={styles.headerContainer}>
-        <TouchableOpacity onPress={handlePetDoubleTap}>
-          <Text style={styles.headerText}>
-            {petName}
-          </Text>
-        </TouchableOpacity>
-        <TouchableOpacity onPress={handlePlantDoubleTap}>
-          <Text style={styles.text}>
-            With {plantName}
-          </Text>
-        </TouchableOpacity>
-      </View>
-      <View style ={styles.rightCornerContainer}>
-        <ModalButton label = "Pet" onPress={onChangePet}/>
-        <ModalButton label = "Plant" onPress={onChangePlant}/>
-      </View>
-          <View style={styles.ecosystemContainer}>
-            {pickedPet && <PetSprite imageSize={250} stickerSource={pickedPet}/>}
-            {pickedPlant && <PlantSprite imageSize={200} plantSource={pickedPlant}/>}
-          </View>
-      <PetPicker isVisible={isPetModalVisible} onClose={onPetModalClose}>
-        <PetList onSelect={setPickedPet} onCloseModal={onPetModalClose} />
-      </PetPicker>
-      <PlantPicker isVisible={isPlantModalVisible} onClose={onPlantModalClose}>
-        <PlantList onSelect={setPickedPlant} onCloseModal={onPlantModalClose} />
-      </PlantPicker>
+      <ImageBackground
+        source={ecoBackground}
+        style={{ flex: 1}}>
+        <View style={styles.headerContainer}>
+          <TouchableOpacity onPress={handlePetDoubleTap}>
+            <Text style={styles.headerText}>
+              {' '}{petName}{' '}
+            </Text>
+          </TouchableOpacity>
+          <TouchableOpacity onPress={handlePlantDoubleTap}>
+            <Text style={styles.text}>
+              {' '}With {plantName}{' '}
+            </Text>
+          </TouchableOpacity>
+        </View>
+        <View style ={styles.rightCornerContainer}>
+          <ModalButton label = "Pet" onPress={onChangePet}/>
+          <ModalButton label = "Plant" onPress={onChangePlant}/>
+        </View>
+            <View style={styles.ecosystemContainer}>
+              {pickedPet && <PetSprite imageSize={250} stickerSource={pickedPet}/>}
+              {pickedPlant && <PlantSprite imageSize={200} plantSource={pickedPlant}/>}
+            </View>
+        <PetPicker isVisible={isPetModalVisible} onClose={onPetModalClose}>
+          <PetList onSelect={setPickedPet} onCloseModal={onPetModalClose} />
+        </PetPicker>
+        <PlantPicker isVisible={isPlantModalVisible} onClose={onPlantModalClose}>
+          <PlantList onSelect={setPickedPlant} onCloseModal={onPlantModalClose} />
+        </PlantPicker>
+      </ImageBackground>
     </View>
   );
 }
@@ -103,7 +109,6 @@ const handlePlantDoubleTap = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#83dafa',
   },
   imageContainer: {
     flex: 1,
@@ -123,6 +128,8 @@ const styles = StyleSheet.create({
   headerText: {
     color: '#000000',
     fontSize: 24,
+    backgroundColor: '#ffffff',
+    borderRadius: 5,
   },
   ecosystemContainer: {
     flex: 1,
@@ -130,10 +137,12 @@ const styles = StyleSheet.create({
     alignItems: 'flex-end',
     justifyContent: 'center',
     marginTop: 475,
-    backgroundColor: '#b77e4c'
+    backgroundColor: '#418549'
   },
   text: {
     color: '#00000',
     fontSize: 16,
+    backgroundColor: '#ffffff',
+    borderRadius: 5,
   }
 });
