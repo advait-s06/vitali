@@ -46,20 +46,20 @@ export default function TabLayout() {
         }}
       />
       <Tabs.Screen
+        name="vitamins"
+        options={{
+          title: 'Vitamins',
+          tabBarIcon: ({ color, focused }) => (
+            <Ionicons name={focused ? "medkit" : "medkit-outline"} size={24} color={color} />
+          ),
+        }}
+      />
+      <Tabs.Screen
         name="profile"
         options={{
           title: 'Profile',
           tabBarIcon: ({ color, focused }) => (
             <Ionicons name={focused ? 'person-circle' : 'person-circle-outline'} color={color} size={24}/>
-          ),
-        }}
-      />
-      <Tabs.Screen
-        name="vitamins"
-        options={{
-          title: 'Vitamins',
-          tabBarIcon: ({ color, size }) => (
-            <Ionicons name="medkit-outline" size={size} color={color} />
           ),
         }}
       />
