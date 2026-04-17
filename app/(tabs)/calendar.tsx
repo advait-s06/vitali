@@ -1,254 +1,436 @@
-import React, { useEffect, useState } from 'react';
+import { Ionicons } from '@expo/vector-icons';
+import { useFocusEffect } from '@react-navigation/native';
+import React, { useCallback, useMemo, useState } from 'react';
 import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import type { Supplement } from '../../services/supplements';
 import { getSupplements } from '../../services/supplements';
 
-
 export default function Calendar() {
   const [currentDate, setCurrentDate] = useState(new Date());
-  const [checked, setChecked] = useState<{ [id: string]: boolean }>({});
   const [supplements, setSupplements] = useState<Supplement[]>([]);
-  const year = currentDate.getFullYear();
-  const month = currentDate.getMonth();
-  const firstDay = new Date(year, month, 1);
-  const lastDay = new Date(year, month + 1, 0);
-  const days: (Date | null)[] = [];
+  const [checked, setChecked] = useState<{ [id: string]: boolean }>({});
 
-  useEffect(() => {
-    async function loadSupplements() {
-      const data = await getSupplements();
-      setSupplements(data || []);
+  useFocusEffect(
+    useCallback(() => {
+      async function loadSupplements() {
+        const data = await getSupplements();
+        setSupplements(data);
+      }
+
+      loadSupplements();
+    }, [])
+  );
+
+  const startOfWeek = useMemo(() => {
+    const start = new Date(currentDate);
+    start.setHours(0, 0, 0, 0);
+    start.setDate(start.getDate() - start.getDay());
+    return start;
+  }, [currentDate]);
+
+  const weekDays = useMemo(() => {
+    const days: Date[] = [];
+    for (let i = 0; i < 7; i++) {
+      const day = new Date(startOfWeek);
+      day.setDate(startOfWeek.getDate() + i);
+      days.push(day);
     }
+    return days;
+  }, [startOfWeek]);
 
-    loadSupplements();
-  }, []);
-
-  for (let i = 0; i < firstDay.getDay(); i++) {
-    days.push(null);
-  }
-  for (let day = 1; day <= lastDay.getDate(); day++) {
-    days.push(new Date(year, month, day));
-  }
-
-  const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
-
-  const startOfWeek = new Date(currentDate);
-  startOfWeek.setDate(currentDate.getDate() - currentDate.getDay());
-  const weekDays: Date[] = [];
-  for (let i = 0; i < 7; i++) {
-    const day = new Date(startOfWeek);
-    day.setDate(startOfWeek.getDate() + i);
-    weekDays.push(day);
-  }
   const goToPreviousWeek = () => {
     const prev = new Date(currentDate);
-    prev.setDate(currentDate.getDate() - 7);
+    prev.setDate(prev.getDate() - 7);
     setCurrentDate(prev);
   };
+
   const goToNextWeek = () => {
     const next = new Date(currentDate);
-    next.setDate(currentDate.getDate() + 7);
+    next.setDate(next.getDate() + 7);
     setCurrentDate(next);
   };
 
-  const currentDayName = currentDate.toLocaleDateString('en-US', { weekday: 'long' });
-  const todaysSupplements = supplements.filter(sup => sup.days.includes(currentDayName));
+  const selectedDayName = currentDate.toLocaleDateString('en-US', {
+    weekday: 'long',
+  });
 
-  // Reset checked state when the day changes
-  React.useEffect(() => {
-    setChecked({});
-  }, [currentDate]);
+  const selectedSupplements = supplements.filter((sup) =>
+    sup.days.includes(selectedDayName)
+  );
+
+  const completedCount = selectedSupplements.filter(
+    (sup) => sup.takenToday || checked[sup.id]
+  ).length;
+
+  const totalCount = selectedSupplements.length;
+
+  const completionPercent =
+    totalCount === 0 ? 0 : Math.round((completedCount / totalCount) * 100);
+
+  const toggleCheck = (id: string) => {
+    setChecked((prev) => ({
+      ...prev,
+      [id]: !prev[id],
+    }));
+  };
+
+  const isSameDay = (a: Date, b: Date) => a.toDateString() === b.toDateString();
 
   return (
     <View style={styles.container}>
-      <View style={styles.headerRowCalendar}>
+      <View style={styles.hero}>
+        <Text style={styles.heroTitle}>Calendar</Text>
+      </View>
+
+      <Text style={styles.sectionTitle}>Week View</Text>
+
+      <View style={styles.weekNav}>
         <TouchableOpacity onPress={goToPreviousWeek} style={styles.arrowButton}>
-          <Text style={styles.arrowText}>‹</Text>
+          <Ionicons name="arrow-back" size={24} color="#0f7f43" />
         </TouchableOpacity>
-        <View style={styles.monthYearContainer}>
-          <Text style={styles.monthText}>{currentDate.toLocaleDateString('en-US', { month: 'long' })}</Text>
-          <Text style={styles.monthText}>{currentDate.getFullYear()}</Text>
-        </View>
+
+        <Text style={styles.monthRangeText}>
+          {weekDays[0].toLocaleDateString('en-US', {
+            month: 'short',
+            day: 'numeric',
+          })}{' '}
+          -{' '}
+          {weekDays[6].toLocaleDateString('en-US', {
+            month: 'short',
+            day: 'numeric',
+          })}
+        </Text>
+
         <TouchableOpacity onPress={goToNextWeek} style={styles.arrowButton}>
-          <Text style={styles.arrowText}>›</Text>
+          <Ionicons name="arrow-forward" size={24} color="#0f7f43" />
         </TouchableOpacity>
       </View>
-      <View style={styles.calendarBackground}>
-        <View style={styles.headerRow}>
-          {dayNames.map(day => <Text key={day} style={styles.headerText}>{day}</Text>)}
-        </View>
-        <View style={{ flexDirection: 'row', width: '100%', justifyContent: 'center' }}>
-          {weekDays.map((item, idx) => {
-            const isToday = item.toDateString() === new Date().toDateString();
-            const isSelected = item.toDateString() === currentDate.toDateString();
+
+      <View style={styles.weekCard}>
+        <View style={styles.dayRow}>
+          {weekDays.map((day, index) => {
+            const selected = isSameDay(day, currentDate);
+            const today = isSameDay(day, new Date());
+
             return (
               <TouchableOpacity
-                key={idx}
-                style={[styles.dayCell, isToday && styles.todayCell, isSelected && { borderWidth: 2, borderColor: '#028146' }]}
-                onPress={() => setCurrentDate(item)}
+                key={index}
+                style={[
+                  styles.dayBubble,
+                  today && styles.todayBubble,
+                  selected && styles.selectedBubble,
+                ]}
+                onPress={() => setCurrentDate(day)}
               >
-                <Text style={[styles.dayText, isToday && styles.todayText, isSelected && { textDecorationLine: 'underline' }]}>{item.getDate()}</Text>
+                <Text
+                  style={[
+                    styles.dayLetter,
+                    selected && styles.selectedBubbleText,
+                  ]}
+                >
+                  {day.toLocaleDateString('en-US', { weekday: 'short' }).slice(0, 1)}
+                </Text>
+                <Text
+                  style={[
+                    styles.dayNumber,
+                    selected && styles.selectedBubbleText,
+                  ]}
+                >
+                  {day.getDate()}
+                </Text>
               </TouchableOpacity>
             );
           })}
         </View>
       </View>
-      <View style={styles.todoContainer}>
-        <Text style={styles.todoHeader}>{currentDate.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' })}</Text>
-        {todaysSupplements.length === 0 ? (
-          <Text style={styles.noTodosText}>No vitamins for this day.</Text>
+
+      <View style={styles.legendRow}>
+        <View style={styles.legendItem}>
+          <View style={[styles.legendColor, { backgroundColor: '#f1f1f1' }]} />
+          <Text style={styles.legendText}>None</Text>
+        </View>
+
+        <View style={styles.legendItem}>
+          <View style={[styles.legendColor, { backgroundColor: '#ffe86a' }]} />
+          <Text style={styles.legendText}>Partial</Text>
+        </View>
+
+        <View style={styles.legendItem}>
+          <View style={[styles.legendColor, { backgroundColor: '#79c98b' }]} />
+          <Text style={styles.legendText}>All Done</Text>
+        </View>
+      </View>
+
+      <View style={styles.detailsCard}>
+        <Text style={styles.selectedText}>
+          Selected:{' '}
+          {currentDate.toLocaleDateString('en-US', {
+            weekday: 'short',
+            month: 'short',
+            day: 'numeric',
+          })}
+        </Text>
+
+        <Text style={styles.completionText}>
+          Completion: {completedCount}/{totalCount} ({completionPercent}%)
+        </Text>
+
+        {selectedSupplements.length === 0 ? (
+          <Text style={styles.emptyText}>No vitamins scheduled for this day.</Text>
         ) : (
-          todaysSupplements.map(sup => (
-            <View key={sup.id} style={{marginBottom: 10, alignItems: 'center', flexDirection: 'row'}}>
-              <TouchableOpacity
-                onPress={() => setChecked(prev => ({ ...prev, [sup.id]: !prev[sup.id] }))}
-                style={{ marginRight: 10 }}
-              >
-                <View style={{
-                  width: 24,
-                  height: 24,
-                  borderRadius: 6,
-                  borderWidth: 2,
-                  borderColor: '#028146',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  backgroundColor: checked[sup.id] ? '#028146' : '#fff',
-                }}>
-                  {checked[sup.id] && (
-                    <Text style={{ color: '#fff', fontSize: 18 }}>✓</Text>
-                  )}
+          <>
+            {selectedSupplements.map((sup) => {
+              const done = sup.takenToday || checked[sup.id];
+
+              return (
+                <View key={sup.id} style={styles.todoRow}>
+                  <TouchableOpacity
+                    onPress={() => toggleCheck(sup.id)}
+                    style={[styles.checkbox, done && styles.checkboxDone]}
+                  >
+                    {done && <Text style={styles.checkmark}>✓</Text>}
+                  </TouchableOpacity>
+
+                  <View style={styles.todoContent}>
+                    <Text
+                      style={[
+                        styles.todoName,
+                        done && { textDecorationLine: 'line-through', color: '#7b8b81' },
+                      ]}
+                    >
+                      {sup.name}
+                    </Text>
+
+                    <Text style={styles.todoSubtext}>
+                      {sup.times.length > 0 ? sup.times.join(', ') : 'Anytime'}
+                    </Text>
+
+                    <Text style={styles.todoSubtext}>
+                      {sup.withFood ? 'With Food' : 'No Food'}
+                    </Text>
+                  </View>
                 </View>
-              </TouchableOpacity>
-              <View style={{ alignItems: 'flex-start' }}>
-                <Text style={{fontSize: 18, textDecorationLine: checked[sup.id] ? 'line-through' : 'none'}}>💊 {sup.name}</Text>
-                <Text style={{ fontSize: 14, color: '#028146' }}>
-                  Times: {sup.times.length > 0 ? sup.times.join(', ') : 'Anytime'}
-                </Text>               
-                <Text style={{fontSize: 14, color: '#028146'}}>With Food: {sup.withFood ? 'Yes' : 'No'}</Text>
-              </View>
+              );
+            })}
+
+            <View
+              style={[
+                styles.statusPill,
+                completionPercent === 100
+                  ? styles.allDonePill
+                  : completionPercent > 0
+                  ? styles.partialPill
+                  : styles.nonePill,
+              ]}
+            >
+              <Text style={styles.statusPillText}>
+                {completionPercent === 100
+                  ? 'All Done'
+                  : completionPercent > 0
+                  ? 'Partially Complete'
+                  : 'Not Started'}
+              </Text>
             </View>
-          ))
+          </>
         )}
       </View>
     </View>
-  )
+  );
 }
-
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#c2ecc7',
+    backgroundColor: '#ccebc7',
+    paddingTop: 42,
     alignItems: 'center',
-    justifyContent: 'flex-start',
-    paddingTop: 50,
   },
-  monthText: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    marginBottom: 20,
+  hero: {
+    width: '100%',
+    alignItems: 'center',
+    paddingBottom: 12,
   },
-  headerRowCalendar: {
+  heroTitle: {
+    fontSize: 20,
+    fontWeight: '800',
+    color: '#ffffff',
+  },
+  sectionTitle: {
+    fontSize: 30,
+    fontWeight: '800',
+    color: '#163221',
+    marginTop: 10,
+    marginBottom: 16,
+  },
+  weekNav: {
+    width: '86%',
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    width: '90%',
-    marginBottom: 20,
+    marginBottom: 16,
   },
   arrowButton: {
-    paddingHorizontal: 10,
-    paddingVertical: 5,
+    padding: 6,
   },
-  arrowText: {
-    fontSize: 30,
-    color: '#028146',
-    fontWeight: 'bold',
+  monthRangeText: {
+    fontSize: 22,
+    fontWeight: '700',
+    color: '#173221',
   },
-  monthYearContainer: {
+  weekCard: {
+    width: '86%',
+    backgroundColor: '#ffffff',
+    borderRadius: 28,
+    padding: 18,
+    marginBottom: 16,
+    shadowColor: '#000',
+    shadowOpacity: 0.07,
+    shadowRadius: 8,
+    shadowOffset: { width: 0, height: 2 },
+    elevation: 2,
+  },
+  dayRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+  },
+  dayBubble: {
+    width: 42,
+    height: 60,
+    borderRadius: 21,
+    backgroundColor: '#f4f7f2',
+    justifyContent: 'center',
+    alignItems: 'center',
+    gap: 2,
+  },
+  todayBubble: {
+    borderWidth: 2,
+    borderColor: '#0f8d46',
+  },
+  selectedBubble: {
+    backgroundColor: '#0f8d46',
+  },
+  selectedBubbleText: {
+    color: '#ffffff',
+  },
+  dayLetter: {
+    fontSize: 15,
+    fontWeight: '700',
+    color: '#223127',
+  },
+  dayNumber: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#223127',
+  },
+  legendRow: {
+    width: '86%',
+    flexDirection: 'row',
+    justifyContent: 'center',
+    gap: 18,
+    marginBottom: 14,
+  },
+  legendItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 10,
+    gap: 6,
   },
-  headerRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-around',
-    width: '100%',
-    marginBottom: 10,
+  legendColor: {
+    width: 18,
+    height: 18,
+    borderRadius: 4,
   },
-  headerText: {
+  legendText: {
+    fontSize: 13,
+    color: '#304237',
+  },
+  detailsCard: {
+    width: '86%',
+    backgroundColor: '#ffffff',
+    borderRadius: 28,
+    padding: 20,
+    shadowColor: '#000',
+    shadowOpacity: 0.07,
+    shadowRadius: 8,
+    shadowOffset: { width: 0, height: 2 },
+    elevation: 2,
+  },
+  selectedText: {
     fontSize: 16,
-    fontWeight: 'bold',
-    width: 40,
+    fontWeight: '700',
+    color: '#324237',
+    marginBottom: 6,
+  },
+  completionText: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#324237',
+    marginBottom: 16,
+  },
+  emptyText: {
     textAlign: 'center',
-  },
-  calendar: {
-    width: '100%',
-  },
-  dayCell: {
-    width: 40,
-    height: 40,
-    justifyContent: 'center',
-    alignItems: 'center',
-    margin: 2,
-    borderRadius: 20,
-  },
-  todayCell: {
-    backgroundColor: '#028146',
-  },
-  dayText: {
-    fontSize: 16,
-  },
-  todayText: {
-    color: '#fff',
-    fontWeight: 'bold',
-  },
-  calendarBackground: {
-    backgroundColor: '#fff',
-    borderRadius: 24,
-    borderWidth: 3,
-    borderColor: '#fff',
-    padding: 16,
-    alignItems: 'center',
-    justifyContent: 'center',
-    width: 340,
-    alignSelf: 'center',
-    marginBottom: 20,
-    // Optional: subtle shadow for depth
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.08,
-    shadowRadius: 8,
-    elevation: 3,
-  },
-  todoContainer: {
-    backgroundColor: '#fff',
-    borderRadius: 24,
-    borderWidth: 3,
-    borderColor: '#fff',
-    padding: 16,
-    alignItems: 'center',
-    justifyContent: 'center',
-    width: 340,
-    alignSelf: 'center',
-    marginBottom: 20,
-    marginTop: 10,
-    // Optional: subtle shadow for depth
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.08,
-    shadowRadius: 8,
-    elevation: 3,
-  },
-  todoHeader: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    color: '#028146',
-    marginBottom: 10,
-  },
-  noTodosText: {
-    color: '#888',
+    color: '#8a8a8a',
     fontStyle: 'italic',
-    marginTop: 8,
-    textAlign: 'center',
+    fontSize: 16,
+    marginTop: 6,
+  },
+  todoRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    marginBottom: 16,
+  },
+  checkbox: {
+    width: 28,
+    height: 28,
+    borderRadius: 6,
+    borderWidth: 2,
+    borderColor: '#0f8d46',
+    backgroundColor: '#ffffff',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 12,
+    marginTop: 2,
+  },
+  checkboxDone: {
+    backgroundColor: '#0f8d46',
+  },
+  checkmark: {
+    color: '#ffffff',
+    fontSize: 18,
+    fontWeight: '700',
+  },
+  todoContent: {
+    flex: 1,
+  },
+  todoName: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#1b2a20',
+    marginBottom: 2,
+  },
+  todoSubtext: {
+    fontSize: 14,
+    color: '#5f6f65',
+    marginBottom: 2,
+  },
+  statusPill: {
+    alignSelf: 'flex-start',
+    borderRadius: 14,
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    marginTop: 6,
+  },
+  nonePill: {
+    backgroundColor: '#f1f1f1',
+  },
+  partialPill: {
+    backgroundColor: '#ffe86a',
+  },
+  allDonePill: {
+    backgroundColor: '#79c98b',
+  },
+  statusPillText: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: '#253328',
   },
 });
