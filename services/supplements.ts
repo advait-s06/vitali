@@ -1,41 +1,49 @@
-import { loadData, saveData } from "./storage";
+import { loadData, saveData } from './storage';
 
 export type Supplement = {
   id: string;
   name: string;
-  time: string;
+  days: string[];
+  times: string[];
   withFood: boolean;
   takenToday: boolean;
-  days: string[];
 };
 
-const SUPPLEMENTS_KEY = "supplements";
+const SUPPLEMENTS_KEY = 'supplements';
 
 export async function getSupplements(): Promise<Supplement[]> {
-  const data = await loadData(SUPPLEMENTS_KEY);
-  return data || [];
+  const supplements = await loadData<Supplement[]>(SUPPLEMENTS_KEY);
+  return supplements ?? [];
 }
 
-export async function addSupplement(newSupplement: Supplement) {
-  const supplements = await getSupplements();
-  const updated = [...supplements, newSupplement];
-  await saveData(SUPPLEMENTS_KEY, updated);
-
-
+export async function saveSupplements(supplements: Supplement[]): Promise<void> {
+  await saveData(SUPPLEMENTS_KEY, supplements);
 }
 
-export async function deleteSupplement(id: string) {
-  const supplements = await getSupplements();
-  const updated = supplements.filter((supplement) => supplement.id !== id);
-  await saveData(SUPPLEMENTS_KEY, updated);
+export async function addSupplement(newSupplement: Supplement): Promise<void> {
+  const current = await getSupplements();
+  const updated = [...current, newSupplement];
+  await saveSupplements(updated);
 }
 
-export async function toggleTaken(id: string) {
-  const supplements = await getSupplements();
-  const updated = supplements.map((supplement) =>
-    supplement.id === id
-      ? { ...supplement, takenToday: !supplement.takenToday }
-      : supplement
+export async function updateSupplement(updatedSupplement: Supplement): Promise<void> {
+  const current = await getSupplements();
+  const updated = current.map((item) =>
+    item.id === updatedSupplement.id ? updatedSupplement : item
   );
-  await saveData(SUPPLEMENTS_KEY, updated);
+  await saveSupplements(updated);
+}
+
+export async function deleteSupplement(id: string): Promise<void> {
+  const current = await getSupplements();
+  const updated = current.filter((item) => item.id !== id);
+  await saveSupplements(updated);
+}
+
+export async function toggleTaken(id: string): Promise<void> {
+  const current = await getSupplements();
+  const updated = current.map((item) =>
+    item.id === id ? { ...item, takenToday: !item.takenToday } : item
+  );
+  await saveSupplements(updated);
 }

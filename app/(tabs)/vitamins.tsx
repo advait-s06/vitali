@@ -1,32 +1,49 @@
-import DateTimePicker, { DateTimePickerEvent } from '@react-native-community/datetimepicker';
-import React, { useState } from 'react';
-import { Alert, FlatList, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { useVitamins } from '@/VitaminContext';
+import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
+import DateTimePicker, {
+  DateTimePickerEvent,
+} from '@react-native-community/datetimepicker';
+import { useFocusEffect } from '@react-navigation/native';
+import React, { useCallback, useState } from 'react';
+import {
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
+} from 'react-native';
 
- export type Supplement = {
-    id: string;
-    name: string;
-    days: string[];
-    times: string[];
-    withFood: boolean;
-    takenToday: boolean;
-  }
+import type { Supplement } from '../../services/supplements';
+import {
+  addSupplement,
+  deleteSupplement,
+  getSupplements,
+  toggleTaken as toggleTakenService,
+  updateSupplement,
+} from '../../services/supplements';
 
 export default function Vitamins() {
+  const { supplements, setSupplements } = useVitamins();
+
   const [selectedDays, setSelectedDays] = useState<string[]>([]);
   const [text, setText] = useState('');
-  const [supplements, setSupplements] = useState<Supplement[]>([]);
   const [selectedTimes, setSelectedTimes] = useState<Date[]>([]);
-  const [showPicker, setShowPicker] = useState<boolean>(false);
-  const [withFood, setWithFood] = useState<boolean>(false);
+  const [showPicker, setShowPicker] = useState(false);
+  const [withFood, setWithFood] = useState(false);
+  const [tempTime, setTempTime] = useState(new Date());
+  const [editingVitaminId, setEditingVitaminId] = useState<string | null>(null);
 
-  type VitaminsContextType = {
-  supplements: Supplement[];
-  setSupplements: React.Dispatch<React.SetStateAction<Supplement[]>>;
-  pickedPet: string | null;
-  setPickedPet: React.Dispatch<React.SetStateAction<string | null>>;
-  pickedPlant: string | null;
-  setPickedPlant: React.Dispatch<React.SetStateAction<string | null>>;
-};
+  useFocusEffect(
+    useCallback(() => {
+      async function loadSupplements() {
+        const data = await getSupplements();
+        setSupplements(data);
+      }
+
+      loadSupplements();
+    }, [setSupplements])
+  );
 
   const daysOfWeek = [
     { id: 0, label: 'S', full: 'Sunday' },
@@ -38,19 +55,11 @@ export default function Vitamins() {
     { id: 6, label: 'S', full: 'Saturday' },
   ];
 
-  const onTimeChange = (event: DateTimePickerEvent, date?: Date) => {
-    setShowPicker(false);
-    if (event.type === 'set' && date) {
-      setSelectedTimes((prev) => [...prev, date]);
-    }
-  };
-
-  const removeTime = (indexToRemove: number) => {
-    setSelectedTimes((prev) => prev.filter((_, index) => index !== indexToRemove));
-  };
-
   const formatTime = (date: Date) => {
-    return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    return date.toLocaleTimeString([], {
+      hour: 'numeric',
+      minute: '2-digit',
+    });
   };
 
   const toggleDay = (dayName: string) => {
@@ -61,91 +70,130 @@ export default function Vitamins() {
     );
   };
 
-  const addVitamin = () => {
-    if (text.trim() === '' || selectedTimes.length === 0) return;
+  const onTimeChange = (event: DateTimePickerEvent, date?: Date) => {
+    if (event.type === 'dismissed') {
+      return;
+    }
 
-    const newSupplement: Supplement = {
-      id: Date.now().toString(),
-      name: text,
+    if (date) {
+      setTempTime(date);
+    }
+  };
+
+  const removeTime = (indexToRemove: number) => {
+    setSelectedTimes((prev) =>
+      prev.filter((_, index) => index !== indexToRemove)
+    );
+  };
+
+  const resetForm = () => {
+    setEditingVitaminId(null);
+    setText('');
+    setSelectedDays([]);
+    setSelectedTimes([]);
+    setWithFood(false);
+    setShowPicker(false);
+    setTempTime(new Date());
+  };
+
+  const handleEditVitamin = (item: Supplement) => {
+    setEditingVitaminId(item.id);
+    setText(item.name);
+    setSelectedDays(item.days);
+    setWithFood(item.withFood);
+
+    const parsedTimes = item.times.map((timeString) => {
+      const parsed = new Date(`2000-01-01 ${timeString}`);
+      return isNaN(parsed.getTime()) ? new Date() : parsed;
+    });
+
+    setSelectedTimes(parsedTimes.length > 0 ? parsedTimes : []);
+  };
+
+  const saveVitamin = async () => {
+    if (!text.trim() || selectedTimes.length === 0) return;
+
+    const vitamin: Supplement = {
+      id: editingVitaminId ?? Date.now().toString(),
+      name: text.trim(),
       days: selectedDays,
       times: selectedTimes.map(formatTime),
       withFood,
       takenToday: false,
     };
 
-    setSupplements((prev: Supplement[]) => [...prev, newSupplement]);
-    setText('');
-    setSelectedDays([]);
-    setSelectedTimes([]);
-    setWithFood(false);
+    if (editingVitaminId) {
+      const existing = supplements.find((s) => s.id === editingVitaminId);
+
+      await updateSupplement({
+        ...vitamin,
+        takenToday: existing?.takenToday ?? false,
+      });
+    } else {
+      await addSupplement(vitamin);
+    }
+
+    const updated = await getSupplements();
+    setSupplements(updated);
+    resetForm();
   };
 
-  const toggleTaken = (id: string) => {
-    setSupplements((prev: Supplement[]) =>
-      prev.map((item) =>
-        item.id === id ? { ...item, takenToday: !item.takenToday } : item
-      )
-    );
+  const handleToggleTaken = async (id: string) => {
+    await toggleTakenService(id);
+    const updated = await getSupplements();
+    setSupplements(updated);
   };
 
-  const deleteVitamin = (id: string) => {
-    setSupplements((prev: Supplement[]) =>
-      prev.filter((item) => item.id !== id)
-    );
+  const handleDeleteVitamin = async (id: string) => {
+    await deleteSupplement(id);
+    const updated = await getSupplements();
+    setSupplements(updated);
   };
 
-  const showVitaminDetails = (item: Supplement) => {
-    Alert.alert(
-      item.name,
-      'Days: ' +
-        (item.days.join(', ') || 'None') +
-        '\nTimes: ' +
-        (item.times.join(', ') || 'None') +
-        '\nWith Food: ' +
-        (item.withFood ? 'Yes' : 'No') +
-        '\nTaken Today: ' +
-        (item.takenToday ? 'Yes' : 'No')
-    );
-  };
-
-  const EmptyState = () => (
-    <View style={styles.emptyState}>
-      <Text>No Vitamins Yet</Text>
-    </View>
-  );
+  const todaysCount = supplements.filter((item) => !item.takenToday).length;
 
   return (
-    <ScrollView style={styles.scrollView}>
-      <View style={styles.container}>
-        <View style={styles.headerContainer}>
-          <Text style={styles.header}>Add Vitamins</Text>
+    <ScrollView style={styles.screen} contentContainerStyle={styles.content}>
+      <View style={styles.hero}>
+        <Text style={styles.heroTitle}>Vitamins</Text>
+
+        <View style={styles.heroIconWrap}>
+          <MaterialCommunityIcons name="pill" size={32} color="#169c4e" />
+        </View>
+      </View>
+
+      <View style={styles.formCard}>
+        <View style={styles.sectionTitleRow}>
+          <Ionicons name="add-circle" size={26} color="#8ac89b" />
+          <Text style={styles.sectionTitle}>Add a Vitamin</Text>
         </View>
 
-        <View style={styles.inputContainer}>
+        <View style={styles.inputWrap}>
+          <Ionicons name="leaf-outline" size={22} color="#3c9a59" />
           <TextInput
             style={styles.input}
-            onChangeText={setText}
             value={text}
-            placeholder="Enter Vitamin here..."
+            onChangeText={setText}
+            placeholder="Enter vitamin name..."
+            placeholderTextColor="#7d8f83"
           />
         </View>
 
-        <View style={styles.daysContainer}>
+        <Text style={styles.smallLabel}>Repeat on</Text>
+        <View style={styles.daysRow}>
           {daysOfWeek.map((day) => {
-            const isSelected = selectedDays.includes(day.full);
+            const selected = selectedDays.includes(day.full);
+
             return (
               <TouchableOpacity
                 key={day.id}
-                style={[
-                  styles.dayButton,
-                  isSelected && styles.selectedDayButton,
-                ]}
+                style={[styles.dayCircle, selected && styles.dayCircleActive]}
                 onPress={() => toggleDay(day.full)}
               >
                 <Text
                   style={[
-                    styles.dayText,
-                    isSelected && styles.selectedDayText,
+                    styles.dayCircleText,
+                    selected && styles.dayCircleTextActive,
                   ]}
                 >
                   {day.label}
@@ -155,371 +203,674 @@ export default function Vitamins() {
           })}
         </View>
 
-        <View style={styles.timeContainer}>
-          <Text>Scheduled Times:</Text>
-          <View style={styles.chipsContainer}>
+        <View style={styles.twoColumnRow}>
+          <View style={styles.column}>
+            <Text style={styles.smallLabel}>Time</Text>
+
+            <TouchableOpacity
+              style={styles.timeButton}
+              onPress={() => setShowPicker(true)}
+            >
+              <Ionicons name="time-outline" size={20} color="#17854a" />
+              <Text style={styles.timeButtonText}>+ Add Time</Text>
+            </TouchableOpacity>
+          </View>
+
+          <View style={styles.column}>
+            <Text style={styles.smallLabel}>With Food?</Text>
+
+            <View style={styles.foodToggleRow}>
+              <TouchableOpacity
+                style={[styles.foodChoice, withFood && styles.foodChoiceYes]}
+                onPress={() => setWithFood(true)}
+              >
+                <Text
+                  style={[
+                    styles.foodChoiceText,
+                    withFood && styles.foodChoiceTextActive,
+                  ]}
+                >
+                  Yes
+                </Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={[styles.foodChoice, !withFood && styles.foodChoiceNo]}
+                onPress={() => setWithFood(false)}
+              >
+                <Text
+                  style={[
+                    styles.foodChoiceText,
+                    !withFood && styles.foodChoiceTextActive,
+                  ]}
+                >
+                  No
+                </Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+
+        {selectedTimes.length > 0 && (
+          <View style={styles.timeChipsWrap}>
             {selectedTimes.map((time, index) => (
-              <View key={index.toString()} style={styles.chip}>
-                <Text style={styles.chipText}>{formatTime(time)}</Text>
+              <View key={index} style={styles.timeChip}>
+                <Text style={styles.timeChipText}>{formatTime(time)}</Text>
                 <TouchableOpacity onPress={() => removeTime(index)}>
-                  <Text style={styles.deleteIcon}> ✕</Text>
+                  <Ionicons name="close" size={16} color="#6d7d74" />
                 </TouchableOpacity>
               </View>
             ))}
-
-            <TouchableOpacity
-              style={styles.addButton}
-              onPress={() => setShowPicker(true)}
-            >
-              <Text style={styles.addButtonText}>+ Add Time</Text>
-            </TouchableOpacity>
           </View>
+        )}
 
-          {showPicker && (
-            <DateTimePicker
-              value={new Date()}
-              mode="time"
-              is24Hour={false}
-              onChange={onTimeChange}
-            />
-          )}
-        </View>
-
-        <View style={styles.foodContainer}>
-          <Text style={styles.subHeader}>Take with food?</Text>
-          <View style={styles.buttonContainer}>
-            <TouchableOpacity
-              style={[styles.choiceButton, withFood && styles.selectedChoice]}
-              onPress={() => setWithFood(true)}
-            >
-              <Text
-                style={[
-                  styles.choiceText,
-                  withFood && styles.selectedChoiceText,
-                ]}
-              >
-                Yes
-              </Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              style={[styles.choiceButton, !withFood && styles.selectedChoice]}
-              onPress={() => setWithFood(false)}
-            >
-              <Text
-                style={[
-                  styles.choiceText,
-                  !withFood && styles.selectedChoiceText,
-                ]}
-              >
-                No
-              </Text>
-            </TouchableOpacity>
-          </View>
-        </View>
-
-        <TouchableOpacity style={styles.toggleButton} onPress={addVitamin}>
-          <Text style={styles.toggleButtonText}>Add Vitamin</Text>
+        <TouchableOpacity style={styles.addButton} onPress={saveVitamin}>
+          <Ionicons name="add-circle-outline" size={22} color="#fff" />
+          <Text style={styles.addButtonText}>
+            {editingVitaminId ? 'Save Changes' : 'Add Vitamin'}
+          </Text>
         </TouchableOpacity>
 
-        <View style={styles.headerContainer}>
-          <Text style={styles.header}>Your Vitamins</Text>
+        {editingVitaminId && (
+          <TouchableOpacity style={styles.cancelEditButton} onPress={resetForm}>
+            <Text style={styles.cancelEditButtonText}>Cancel Edit</Text>
+          </TouchableOpacity>
+        )}
+
+        {showPicker && (
+          <View style={styles.pickerCard}>
+            <DateTimePicker
+              value={tempTime}
+              mode="time"
+              display="spinner"
+              is24Hour={false}
+              onChange={onTimeChange}
+              style={styles.picker}
+            />
+
+            <View style={styles.pickerActions}>
+              <TouchableOpacity
+                style={styles.cancelPickerButton}
+                onPress={() => setShowPicker(false)}
+              >
+                <Text style={styles.cancelPickerText}>Cancel</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={styles.confirmPickerButton}
+                onPress={() => {
+                  setSelectedTimes((prev) => [...prev, tempTime]);
+                  setShowPicker(false);
+                }}
+              >
+                <Text style={styles.confirmPickerText}>Confirm Time</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        )}
+      </View>
+
+      <View style={styles.listHeader}>
+        <View style={styles.sectionTitleRow}>
+          <MaterialCommunityIcons name="pill" size={24} color="#f07e4d" />
+          <Text style={styles.sectionTitle}>Your Vitamins</Text>
         </View>
 
-        <View style={styles.vitaminList}>
-          {supplements.length === 0 ? (
-            <EmptyState />
-          ) : (
-            <FlatList
-              horizontal
-              data={supplements}
-              keyExtractor={(item) => item.id}
-              renderItem={({ item }) => (
-              <View style={styles.vitaminCard}>
-                <View style={styles.cardHeader}>
-                  <View style={styles.iconCircle}>
-                    <Text style={styles.iconText}>💊</Text>
-                  </View>
+        <TouchableOpacity>
+          <Text style={styles.historyLink}>View History</Text>
+        </TouchableOpacity>
+      </View>
 
-                  <View style={{ flex: 1 }}>
-                    <Text style={styles.vitaminName}>{item.name}</Text>
-                    <Text style={styles.cardMeta}>
-                      {item.times && item.times.length > 0 ? item.times.join(", ") : "No time set"}
-                    </Text>
-                    <Text style={styles.cardMeta}>
-                      {item.withFood ? "With food" : "No food needed"}
-                    </Text>
-                    <Text style={styles.cardMeta}>
-                      {item.takenToday ? "Taken today" : "Not taken yet"}
-                    </Text>
-                  </View>
-                </View>
+      {supplements.map((item) => (
+        <View key={item.id} style={styles.vitaminCard}>
+          <View style={styles.vitaminTopRow}>
+            <View style={styles.iconBox}>
+              <MaterialCommunityIcons name="pill" size={36} color="#f29c36" />
+            </View>
 
-                {item.days && item.days.length > 0 && (
-                  <Text style={styles.cardMeta}>Days: {item.days.join(", ")}</Text>
-                )}
+            <View style={styles.vitaminMain}>
+              <View style={styles.nameRow}>
+                <Text style={styles.vitaminName}>{item.name}</Text>
 
-                <View style={styles.cardActions}>
-                  <TouchableOpacity
-                    style={styles.toggleButton}
-                    onPress={() => toggleTaken(item.id)}
+                <View style={styles.badge}>
+                  <Ionicons
+                    name={item.takenToday ? 'checkmark-circle' : 'ellipse-outline'}
+                    size={18}
+                    color={item.takenToday ? '#228b4e' : '#6f8677'}
+                  />
+                  <Text
+                    style={[
+                      styles.badgeText,
+                      { color: item.takenToday ? '#228b4e' : '#6f8677' },
+                    ]}
                   >
-                    <Text style={styles.toggleButtonText}>
-                      {item.takenToday ? "Undo" : "Mark Taken"}
-                    </Text>
-                  </TouchableOpacity>
-
-                  <TouchableOpacity
-                    style={styles.deleteButton}
-                    onPress={() => deleteVitamin(item.id)}
-                  >
-                    <Text style={styles.deleteButtonText}>Delete</Text>
-                  </TouchableOpacity>
+                    {item.takenToday ? 'Active' : 'Pending'}
+                  </Text>
                 </View>
               </View>
-            )}
-                          showsHorizontalScrollIndicator={false}
-                        />
-                      )}
-                    </View>
-                  </View>
-                </ScrollView>
+
+              <View style={styles.infoRow}>
+                <Ionicons name="time-outline" size={18} color="#6a786f" />
+                <Text style={styles.infoText}>
+                  {item.times.length > 0 ? item.times.join(', ') : 'Anytime'}
+                </Text>
+
+                <MaterialCommunityIcons
+                  name="silverware-fork-knife"
+                  size={16}
+                  color="#6a786f"
+                  style={{ marginLeft: 10 }}
+                />
+                <Text style={styles.infoText}>
+                  {item.withFood ? 'With Food' : 'No Food'}
+                </Text>
+              </View>
+
+              <Text style={styles.daysText}>
+                Days:{' '}
+                {item.days.length > 0
+                  ? item.days.map((d) => d.slice(0, 3)).join(', ')
+                  : 'None'}
+              </Text>
+
+              <View
+                style={[
+                  styles.statusPill,
+                  item.takenToday ? styles.statusTaken : styles.statusPending,
+                ]}
+              >
+                <Text
+                  style={[
+                    styles.statusPillText,
+                    item.takenToday
+                      ? styles.statusTakenText
+                      : styles.statusPendingText,
+                  ]}
+                >
+                  {item.takenToday ? 'Taken today' : 'Not taken yet today'}
+                </Text>
+              </View>
+            </View>
+          </View>
+
+          <View style={styles.actionsRow}>
+            <TouchableOpacity
+              style={styles.markButton}
+              onPress={() => handleToggleTaken(item.id)}
+            >
+              <Ionicons name="checkmark" size={20} color="#177f45" />
+              <Text style={styles.markButtonText}>
+                {item.takenToday ? 'Undo' : 'Mark Taken'}
+              </Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={styles.editButton}
+              onPress={() => handleEditVitamin(item)}
+            >
+              <Ionicons name="create-outline" size={20} color="#8b6a08" />
+              <Text style={styles.editButtonText}>Edit</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={styles.deleteButton}
+              onPress={() => handleDeleteVitamin(item.id)}
+            >
+              <Ionicons name="trash-outline" size={20} color="#ef4c43" />
+              <Text style={styles.deleteButtonText}>Delete</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      ))}
+
+      {supplements.length > 0 && todaysCount === 0 && (
+        <View style={styles.emptyDoneCard}>
+          <View style={styles.emptyDoneIcon}>
+            <Ionicons name="calendar-outline" size={32} color="#1f7b46" />
+          </View>
+          <View style={{ flex: 1 }}>
+            <Text style={styles.emptyDoneTitle}>No more vitamins today!</Text>
+            <Text style={styles.emptyDoneText}>
+              You're all set. Great job staying consistent.
+            </Text>
+          </View>
+        </View>
+      )}
+
+      {supplements.length === 0 && (
+        <View style={styles.emptyDoneCard}>
+          <View style={styles.emptyDoneIcon}>
+            <Ionicons name="medkit-outline" size={32} color="#1f7b46" />
+          </View>
+          <View style={{ flex: 1 }}>
+            <Text style={styles.emptyDoneTitle}>No vitamins yet</Text>
+            <Text style={styles.emptyDoneText}>
+              Add your first vitamin to start tracking.
+            </Text>
+          </View>
+        </View>
+      )}
+    </ScrollView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
+  screen: {
     flex: 1,
-    backgroundColor: '#e9f9ff',
-    alignItems: 'center',
-    justifyContent: 'flex-start',
+    backgroundColor: '#f6fff8',
   },
-  scrollView: {
-    backgroundColor: '#e9f9ff',
+  content: {
+    paddingBottom: 40,
   },
-  input: {
-    height: 40,
-    width: 300,
-    borderColor: 'gray',
-    backgroundColor: '#c2ecc7',
-    padding: 10,
-    borderRadius: 15,
-  },
-  inputContainer: {
-    flex: 1 / 12,
-    alignItems: 'center',
-    marginTop: 25,
-  },
-  headerContainer: {
-  alignItems: 'center',
-  marginTop: 25,
-},
-  header: {
-    fontSize: 42,
-    color: '#028146',
-  },
-  daysContainer: {
-    flex: 1 / 12,
-    alignItems: 'center',
+  hero: {
+    backgroundColor: '#ccebc7',
+    paddingTop: 14,
+    paddingHorizontal: 20,
+    paddingBottom: 14,
     flexDirection: 'row',
-    justifyContent: 'space-around',
-    padding: 10,
+    justifyContent: 'space-between',
+    alignItems: 'center',
   },
-  dayButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
+  heroTitle: {
+    fontSize: 22,
+    fontWeight: '800',
+    color: '#113222',
+  },
+  heroIconWrap: {
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    backgroundColor: '#b9e1b3',
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#c2ecc7',
   },
-  selectedDayButton: {
-    backgroundColor: '#028146',
-    borderColor: '#028146',
+  formCard: {
+    marginTop: 16,
+    marginHorizontal: 16,
+    backgroundColor: '#fff',
+    borderRadius: 28,
+    padding: 18,
+    shadowColor: '#000',
+    shadowOpacity: 0.08,
+    shadowRadius: 10,
+    shadowOffset: { width: 0, height: 3 },
+    elevation: 3,
   },
-  dayText: {
-    color: '#333',
-    fontWeight: '600',
-  },
-  selectedDayText: {
-    color: '#fff',
-  },
-  timeContainer: {
-    flex: 1 / 12,
-    alignItems: 'center',
-    justifyContent: 'space-around',
-    padding: 10,
-  },
-  chipsContainer: {
+  sectionTitleRow: {
     flexDirection: 'row',
-    flexWrap: 'wrap',
     alignItems: 'center',
     gap: 10,
   },
-  chip: {
-    flexDirection: 'row',
-    backgroundColor: '#028146',
-    paddingHorizontal: 12,
-    paddingVertical: 8,
+  sectionTitle: {
+    fontSize: 22,
+    fontWeight: '800',
+    color: '#17251f',
+  },
+  inputWrap: {
+    marginTop: 18,
+    borderWidth: 2,
+    borderColor: '#abd6af',
     borderRadius: 20,
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+    flexDirection: 'row',
     alignItems: 'center',
-    borderWidth: 1,
-    borderColor: '#028146',
+    backgroundColor: '#f7fcf7',
   },
-  chipText: {
+  input: {
+    flex: 1,
+    fontSize: 18,
+    marginLeft: 10,
+    color: '#1d2f25',
+  },
+  smallLabel: {
+    fontSize: 15,
+    fontWeight: '700',
+    color: '#17251f',
+    marginTop: 18,
+    marginBottom: 10,
+  },
+  daysRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+  },
+  dayCircle: {
+    width: 46,
+    height: 46,
+    borderRadius: 23,
+    backgroundColor: '#edf5ed',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  dayCircleActive: {
+    backgroundColor: '#4fc264',
+  },
+  dayCircleText: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#1e2f26',
+  },
+  dayCircleTextActive: {
     color: '#fff',
-    fontWeight: '600',
   },
-  deleteIcon: {
-    color: '#FF3B30',
-    fontWeight: 'bold',
-    marginLeft: 8,
+  twoColumnRow: {
+    flexDirection: 'row',
+    marginTop: 14,
+    justifyContent: 'space-between',
+    gap: 16,
+  },
+  column: {
+    flex: 1,
+  },
+  timeButton: {
+    backgroundColor: '#e7f2e6',
+    borderRadius: 18,
+    paddingVertical: 16,
+    paddingHorizontal: 14,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  timeButtonText: {
+    color: '#17854a',
+    fontSize: 16,
+    fontWeight: '700',
+  },
+  foodToggleRow: {
+    flexDirection: 'row',
+    gap: 10,
+  },
+  foodChoice: {
+    flex: 1,
+    borderRadius: 18,
+    paddingVertical: 16,
+    alignItems: 'center',
+    backgroundColor: '#edf5ed',
+  },
+  foodChoiceYes: {
+    backgroundColor: '#22a04b',
+  },
+  foodChoiceNo: {
+    backgroundColor: '#22a04b',
+  },
+  foodChoiceText: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#4e6255',
+  },
+  foodChoiceTextActive: {
+    color: '#fff',
+  },
+  timeChipsWrap: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+    marginTop: 14,
+  },
+  timeChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    backgroundColor: '#eef5ed',
+    borderRadius: 16,
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+  },
+  timeChipText: {
+    color: '#33493d',
+    fontWeight: '600',
   },
   addButton: {
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderRadius: 20,
-    borderStyle: 'dashed',
-    borderWidth: 1,
-    borderColor: '#666',
+    marginTop: 20,
+    backgroundColor: '#169c4e',
+    borderRadius: 24,
+    paddingVertical: 16,
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+    gap: 8,
   },
   addButtonText: {
-    color: '#666',
+    color: '#fff',
+    fontSize: 18,
+    fontWeight: '800',
   },
-  foodContainer: {
-    flex: 1 / 12,
-    alignItems: 'center',
-    justifyContent: 'space-around',
-    padding: 10,
-  },
-  subHeader: {
-    fontSize: 16,
-  },
-  buttonContainer: {
+  listHeader: {
+    marginTop: 22,
+    marginHorizontal: 20,
+    marginBottom: 12,
     flexDirection: 'row',
-    gap: 20,
-    marginTop: 10,
+    justifyContent: 'space-between',
+    alignItems: 'center',
   },
-  choiceButton: {
+  historyLink: {
+    color: '#169c4e',
+    fontSize: 16,
+    fontWeight: '700',
+  },
+  vitaminCard: {
+    backgroundColor: '#f9fcf7',
+    marginHorizontal: 16,
+    marginBottom: 16,
+    borderRadius: 24,
+    padding: 18,
+    borderWidth: 1,
+    borderColor: '#e2ede0',
+    shadowColor: '#000',
+    shadowOpacity: 0.06,
+    shadowRadius: 8,
+    shadowOffset: { width: 0, height: 2 },
+    elevation: 2,
+  },
+  vitaminTopRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+  },
+  iconBox: {
+    width: 86,
+    height: 86,
+    borderRadius: 20,
+    backgroundColor: '#dcefdc',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 14,
+  },
+  vitaminMain: {
+    flex: 1,
+  },
+  nameRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flexWrap: 'wrap',
+    gap: 10,
+    marginBottom: 10,
+  },
+  vitaminName: {
+    fontSize: 24,
+    fontWeight: '800',
+    color: '#17311f',
+  },
+  badge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    backgroundColor: '#e6f2e7',
+    borderRadius: 14,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+  },
+  badgeText: {
+    fontSize: 14,
+    fontWeight: '700',
+  },
+  infoRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flexWrap: 'wrap',
+    marginBottom: 10,
+  },
+  infoText: {
+    marginLeft: 5,
+    color: '#52655a',
+    fontSize: 15,
+  },
+  daysText: {
+    fontSize: 15,
+    color: '#3f5648',
+    marginBottom: 10,
+  },
+  statusPill: {
+    alignSelf: 'flex-start',
+    borderRadius: 16,
     paddingHorizontal: 12,
     paddingVertical: 8,
-    borderRadius: 20,
-    borderStyle: 'dashed',
-    borderWidth: 1,
-    borderColor: '#666',
   },
-  selectedChoice: {
-    borderStyle: 'solid',
-    borderColor: '#028146',
-    backgroundColor: '#028146',
+  statusPending: {
+    backgroundColor: '#f9edd7',
   },
-  choiceText: {
-    color: '#666',
+  statusTaken: {
+    backgroundColor: '#ddefdc',
   },
-  selectedChoiceText: {
-    color: '#fff',
+  statusPillText: {
+    fontSize: 15,
+    fontWeight: '700',
   },
-  vitaminList: {
-    borderTopRightRadius: 10,
-    borderTopLeftRadius: 10,
-    paddingHorizontal: 20,
+  statusPendingText: {
+    color: '#bf7b1b',
+  },
+  statusTakenText: {
+    color: '#1d8b49',
+  },
+  markButton: {
+    flex: 1,
+    backgroundColor: '#dcefdc',
+    borderRadius: 18,
+    paddingVertical: 14,
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+    gap: 8,
+  },
+  markButtonText: {
+    color: '#177f45',
+    fontWeight: '800',
+    fontSize: 16,
+  },
+  deleteButton: {
+    flex: 1,
+    backgroundColor: '#f9e1df',
+    borderRadius: 18,
+    paddingVertical: 14,
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+    gap: 8,
+  },
+  deleteButtonText: {
+    color: '#ef4c43',
+    fontWeight: '800',
+    fontSize: 16,
+  },
+  emptyDoneCard: {
+    marginHorizontal: 16,
+    marginTop: 6,
+    backgroundColor: '#e4f0e3',
+    borderRadius: 24,
+    padding: 18,
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
-    minHeight: 100,
-    marginTop: 20,
   },
-  emptyState: {
-    alignItems: 'center',
+  emptyDoneIcon: {
+    width: 70,
+    height: 70,
+    borderRadius: 20,
+    backgroundColor: '#d4e9cf',
     justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 14,
+  },
+  emptyDoneTitle: {
+    fontSize: 18,
+    fontWeight: '800',
+    color: '#1e3a28',
+    marginBottom: 4,
+  },
+  emptyDoneText: {
+    fontSize: 15,
+    color: '#445c4e',
+    lineHeight: 22,
+  },
+  pickerCard: {
+    marginTop: 16,
+    backgroundColor: '#f7fcf7',
+    borderRadius: 20,
+    padding: 12,
+    borderWidth: 1,
+    borderColor: '#d9e8d8',
+  },
+  picker: {
+    alignSelf: 'center',
+  },
+  pickerActions: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
     marginTop: 10,
+    gap: 10,
   },
-  actionButton: {
+  cancelPickerButton: {
+    flex: 1,
+    backgroundColor: '#edf2ed',
+    borderRadius: 16,
+    paddingVertical: 12,
+    alignItems: 'center',
+  },
+  confirmPickerButton: {
+    flex: 1,
+    backgroundColor: '#169c4e',
+    borderRadius: 16,
+    paddingVertical: 12,
+    alignItems: 'center',
+  },
+  cancelPickerText: {
+    color: '#53685b',
+    fontWeight: '700',
+    fontSize: 15,
+  },
+  confirmPickerText: {
+    color: '#fff',
+    fontWeight: '700',
+    fontSize: 15,
+  },
+  cancelEditButton: {
     marginTop: 10,
+    backgroundColor: '#edf2ed',
+    borderRadius: 20,
+    paddingVertical: 14,
+    alignItems: 'center',
   },
-  actionText: {
-    color: '#028146',
-    fontWeight: '600',
+  cancelEditButtonText: {
+    color: '#53685b',
+    fontWeight: '700',
+    fontSize: 16,
   },
-  deleteText: {
-    color: '#FF3B30',
-    fontWeight: '600',
+  editButton: {
+    flex: 1,
+    backgroundColor: '#f8efcf',
+    borderRadius: 18,
+    paddingVertical: 14,
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+    gap: 8,
   },
-
-  vitaminCard: {
-  backgroundColor: "#f7fbf4",
-  borderRadius: 18,
-  padding: 16,
-  marginRight: 12,
-  minWidth: 230,
-  borderWidth: 1,
-  borderColor: "#dfeedd",
-  shadowColor: "#000",
-  shadowOpacity: 0.08,
-  shadowRadius: 6,
-  shadowOffset: { width: 0, height: 2 },
-  elevation: 3,
-},
-
-cardHeader: {
-  flexDirection: "row",
-  alignItems: "center",
-  marginBottom: 10,
-},
-
-iconCircle: {
-  width: 46,
-  height: 46,
-  borderRadius: 23,
-  backgroundColor: "#dff3dd",
-  alignItems: "center",
-  justifyContent: "center",
-  marginRight: 12,
-},
-
-iconText: {
-  fontSize: 22,
-},
-
-vitaminName: {
-  fontSize: 24,
-  fontWeight: "700",
-  color: "#1f4d33",
-},
-
-cardMeta: {
-  fontSize: 15,
-  color: "#556b5d",
-  marginTop: 3,
-},
-
-cardActions: {
-  flexDirection: "row",
-  gap: 10,
-  marginTop: 12,
-},
-
-toggleButton: {
-  backgroundColor: "#dff3dd",
-  paddingVertical: 8,
-  paddingHorizontal: 14,
-  borderRadius: 16,
-},
-
-toggleButtonText: {
-  color: "#1f7a3f",
-  fontWeight: "600",
-},
-
-deleteButton: {
-  backgroundColor: "#ffe8e8",
-  paddingVertical: 8,
-  paddingHorizontal: 14,
-  borderRadius: 16,
-},
-
-deleteButtonText: {
-  color: "#d84a4a",
-  fontWeight: "600",
-},
+  editButtonText: {
+    color: '#8b6a08',
+    fontWeight: '800',
+    fontSize: 16,
+  },
+  actionsRow: {
+    flexDirection: 'row',
+    gap: 10,
+    marginTop: 18,
+  },
 });
