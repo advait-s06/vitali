@@ -6,7 +6,7 @@ export type Supplement = {
   days: string[];
   times: string[];
   withFood: boolean;
-  takenToday: boolean;
+  takenDates: string[];
 };
 
 const SUPPLEMENTS_KEY = 'supplements';
@@ -40,10 +40,22 @@ export async function deleteSupplement(id: string): Promise<void> {
   await saveSupplements(updated);
 }
 
-export async function toggleTaken(id: string): Promise<void> {
+export async function toggleTakenForDate(id: string, dateKey: string): Promise<void> {
   const current = await getSupplements();
-  const updated = current.map((item) =>
-    item.id === id ? { ...item, takenToday: !item.takenToday } : item
-  );
+
+  const updated = current.map((item) => {
+    if (item.id !== id) return item;
+
+    const takenDates = item.takenDates ?? [];
+    const alreadyTaken = takenDates.includes(dateKey);
+
+    return {
+      ...item,
+      takenDates: alreadyTaken
+        ? takenDates.filter((d) => d !== dateKey)
+        : [...takenDates, dateKey],
+    };
+  });
+
   await saveSupplements(updated);
 }

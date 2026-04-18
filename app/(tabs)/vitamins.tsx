@@ -19,7 +19,7 @@ import {
   addSupplement,
   deleteSupplement,
   getSupplements,
-  toggleTaken as toggleTakenService,
+  toggleTakenForDate,
   updateSupplement,
 } from '../../services/supplements';
 
@@ -33,6 +33,8 @@ export default function Vitamins() {
   const [withFood, setWithFood] = useState(false);
   const [tempTime, setTempTime] = useState(new Date());
   const [editingVitaminId, setEditingVitaminId] = useState<string | null>(null);
+
+  const todayKey = new Date().toISOString().split('T')[0];
 
   useFocusEffect(
     useCallback(() => {
@@ -71,13 +73,8 @@ export default function Vitamins() {
   };
 
   const onTimeChange = (event: DateTimePickerEvent, date?: Date) => {
-    if (event.type === 'dismissed') {
-      return;
-    }
-
-    if (date) {
-      setTempTime(date);
-    }
+    if (event.type === 'dismissed') return;
+    if (date) setTempTime(date);
   };
 
   const removeTime = (indexToRemove: number) => {
@@ -107,7 +104,7 @@ export default function Vitamins() {
       return isNaN(parsed.getTime()) ? new Date() : parsed;
     });
 
-    setSelectedTimes(parsedTimes.length > 0 ? parsedTimes : []);
+    setSelectedTimes(parsedTimes);
   };
 
   const saveVitamin = async () => {
@@ -119,7 +116,7 @@ export default function Vitamins() {
       days: selectedDays,
       times: selectedTimes.map(formatTime),
       withFood,
-      takenToday: false,
+      takenDates: [],
     };
 
     if (editingVitaminId) {
@@ -127,7 +124,7 @@ export default function Vitamins() {
 
       await updateSupplement({
         ...vitamin,
-        takenToday: existing?.takenToday ?? false,
+        takenDates: existing?.takenDates ?? [],
       });
     } else {
       await addSupplement(vitamin);
@@ -139,7 +136,7 @@ export default function Vitamins() {
   };
 
   const handleToggleTaken = async (id: string) => {
-    await toggleTakenService(id);
+    await toggleTakenForDate(id, todayKey);
     const updated = await getSupplements();
     setSupplements(updated);
   };
@@ -150,7 +147,9 @@ export default function Vitamins() {
     setSupplements(updated);
   };
 
-  const todaysCount = supplements.filter((item) => !item.takenToday).length;
+  const todaysCount = supplements.filter(
+    (item) => !(item.takenDates ?? []).includes(todayKey)
+  ).length;
 
   return (
     <ScrollView style={styles.screen} contentContainerStyle={styles.content}>
@@ -315,113 +314,113 @@ export default function Vitamins() {
           <MaterialCommunityIcons name="pill" size={24} color="#f07e4d" />
           <Text style={styles.sectionTitle}>Your Vitamins</Text>
         </View>
-
-        <TouchableOpacity>
-          <Text style={styles.historyLink}>View History</Text>
-        </TouchableOpacity>
       </View>
 
-      {supplements.map((item) => (
-        <View key={item.id} style={styles.vitaminCard}>
-          <View style={styles.vitaminTopRow}>
-            <View style={styles.iconBox}>
-              <MaterialCommunityIcons name="pill" size={36} color="#f29c36" />
-            </View>
+      {supplements.map((item) => {
+        const takenToday = (item.takenDates ?? []).includes(todayKey);
 
-            <View style={styles.vitaminMain}>
-              <View style={styles.nameRow}>
-                <Text style={styles.vitaminName}>{item.name}</Text>
+        return (
+          <View key={item.id} style={styles.vitaminCard}>
+            <View style={styles.vitaminTopRow}>
+              <View style={styles.iconBox}>
+                <MaterialCommunityIcons name="pill" size={36} color="#f29c36" />
+              </View>
 
-                <View style={styles.badge}>
-                  <Ionicons
-                    name={item.takenToday ? 'checkmark-circle' : 'ellipse-outline'}
-                    size={18}
-                    color={item.takenToday ? '#228b4e' : '#6f8677'}
+              <View style={styles.vitaminMain}>
+                <View style={styles.nameRow}>
+                  <Text style={styles.vitaminName}>{item.name}</Text>
+
+                  <View style={styles.badge}>
+                    <Ionicons
+                      name={takenToday ? 'checkmark-circle' : 'ellipse-outline'}
+                      size={18}
+                      color={takenToday ? '#228b4e' : '#6f8677'}
+                    />
+                    <Text
+                      style={[
+                        styles.badgeText,
+                        { color: takenToday ? '#228b4e' : '#6f8677' },
+                      ]}
+                    >
+                      {takenToday ? 'Active' : 'Pending'}
+                    </Text>
+                  </View>
+                </View>
+
+                <View style={styles.infoRow}>
+                  <Ionicons name="time-outline" size={18} color="#6a786f" />
+                  <Text style={styles.infoText}>
+                    {item.times.length > 0 ? item.times.join(', ') : 'Anytime'}
+                  </Text>
+
+                  <MaterialCommunityIcons
+                    name="silverware-fork-knife"
+                    size={16}
+                    color="#6a786f"
+                    style={{ marginLeft: 10 }}
                   />
+                  <Text style={styles.infoText}>
+                    {item.withFood ? 'With Food' : 'No Food'}
+                  </Text>
+                </View>
+
+                <Text style={styles.daysText}>
+                  Days:{' '}
+                  {item.days.length > 0
+                    ? item.days.map((d) => d.slice(0, 3)).join(', ')
+                    : 'None'}
+                </Text>
+
+                <View
+                  style={[
+                    styles.statusPill,
+                    takenToday ? styles.statusTaken : styles.statusPending,
+                  ]}
+                >
                   <Text
                     style={[
-                      styles.badgeText,
-                      { color: item.takenToday ? '#228b4e' : '#6f8677' },
+                      styles.statusPillText,
+                      takenToday
+                        ? styles.statusTakenText
+                        : styles.statusPendingText,
                     ]}
                   >
-                    {item.takenToday ? 'Active' : 'Pending'}
+                    {takenToday ? 'Taken today' : 'Not taken yet today'}
                   </Text>
                 </View>
               </View>
+            </View>
 
-              <View style={styles.infoRow}>
-                <Ionicons name="time-outline" size={18} color="#6a786f" />
-                <Text style={styles.infoText}>
-                  {item.times.length > 0 ? item.times.join(', ') : 'Anytime'}
-                </Text>
-
-                <MaterialCommunityIcons
-                  name="silverware-fork-knife"
-                  size={16}
-                  color="#6a786f"
-                  style={{ marginLeft: 10 }}
-                />
-                <Text style={styles.infoText}>
-                  {item.withFood ? 'With Food' : 'No Food'}
-                </Text>
-              </View>
-
-              <Text style={styles.daysText}>
-                Days:{' '}
-                {item.days.length > 0
-                  ? item.days.map((d) => d.slice(0, 3)).join(', ')
-                  : 'None'}
-              </Text>
-
-              <View
-                style={[
-                  styles.statusPill,
-                  item.takenToday ? styles.statusTaken : styles.statusPending,
-                ]}
+            <View style={styles.actionsRow}>
+              <TouchableOpacity
+                style={styles.markButton}
+                onPress={() => handleToggleTaken(item.id)}
               >
-                <Text
-                  style={[
-                    styles.statusPillText,
-                    item.takenToday
-                      ? styles.statusTakenText
-                      : styles.statusPendingText,
-                  ]}
-                >
-                  {item.takenToday ? 'Taken today' : 'Not taken yet today'}
+                <Ionicons name="checkmark" size={20} color="#177f45" />
+                <Text style={styles.markButtonText}>
+                  {takenToday ? 'Undo' : 'Mark Taken'}
                 </Text>
-              </View>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={styles.editButton}
+                onPress={() => handleEditVitamin(item)}
+              >
+                <Ionicons name="create-outline" size={20} color="#8b6a08" />
+                <Text style={styles.editButtonText}>Edit</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={styles.deleteButton}
+                onPress={() => handleDeleteVitamin(item.id)}
+              >
+                <Ionicons name="trash-outline" size={20} color="#ef4c43" />
+                <Text style={styles.deleteButtonText}>Delete</Text>
+              </TouchableOpacity>
             </View>
           </View>
-
-          <View style={styles.actionsRow}>
-            <TouchableOpacity
-              style={styles.markButton}
-              onPress={() => handleToggleTaken(item.id)}
-            >
-              <Ionicons name="checkmark" size={20} color="#177f45" />
-              <Text style={styles.markButtonText}>
-                {item.takenToday ? 'Undo' : 'Mark Taken'}
-              </Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              style={styles.editButton}
-              onPress={() => handleEditVitamin(item)}
-            >
-              <Ionicons name="create-outline" size={20} color="#8b6a08" />
-              <Text style={styles.editButtonText}>Edit</Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              style={styles.deleteButton}
-              onPress={() => handleDeleteVitamin(item.id)}
-            >
-              <Ionicons name="trash-outline" size={20} color="#ef4c43" />
-              <Text style={styles.deleteButtonText}>Delete</Text>
-            </TouchableOpacity>
-          </View>
-        </View>
-      ))}
+        );
+      })}
 
       {supplements.length > 0 && todaysCount === 0 && (
         <View style={styles.emptyDoneCard}>
@@ -802,7 +801,7 @@ const styles = StyleSheet.create({
   },
   pickerCard: {
     marginTop: 16,
-    backgroundColor: '#135f2a',
+    backgroundColor: '#f7fcf7',
     borderRadius: 20,
     padding: 12,
     borderWidth: 1,
