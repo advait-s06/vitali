@@ -753,7 +753,7 @@ const styles = StyleSheet.create({
   markButtonText: {
     color: '#177f45',
     fontWeight: '800',
-    fontSize: 16,
+    fontSize: 15,
   },
   deleteButton: {
     flex: 1,

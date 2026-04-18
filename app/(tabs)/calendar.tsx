@@ -1,7 +1,7 @@
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { useFocusEffect } from '@react-navigation/native';
 import React, { useCallback, useMemo, useState } from 'react';
-import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import type { Supplement } from '../../services/supplements';
 import {
   getSupplements,
@@ -92,17 +92,21 @@ export default function Calendar() {
   const isSameDay = (a: Date, b: Date) => a.toDateString() === b.toDateString();
 
   return (
-    <View style={styles.container}>
-      <View style={styles.hero}>
+    <ScrollView style={styles.screen} contentContainerStyle={styles.content}>
+      <View style={styles.heroCard}>
         <View style={styles.heroLeft}>
-          <View style={styles.heroIconBox}>
+          <View style={styles.heroIcon}>
             <MaterialCommunityIcons
               name="calendar-month-outline"
-              size={28}
-              color="#146a38"
+              size={26}
+              color="#2b7a45"
             />
           </View>
-          <Text style={styles.heroTitle}>Calendar</Text>
+
+          <View>
+            <Text style={styles.heroTitle}>Calendar</Text>
+            <Text style={styles.heroSubtitle}>Track your vitamins by day</Text>
+          </View>
         </View>
 
         <TouchableOpacity
@@ -145,28 +149,16 @@ export default function Calendar() {
             return (
               <TouchableOpacity
                 key={index}
-                style={[
-                  styles.dayBubble,
-                  selected && styles.selectedDayBubble,
-                ]}
+                style={[styles.dayBubble, selected && styles.selectedDayBubble]}
                 onPress={() => setCurrentDate(day)}
               >
-                <Text
-                  style={[
-                    styles.dayLabel,
-                    selected && styles.selectedDayText,
-                  ]}
-                >
+                <Text style={[styles.dayLabel, selected && styles.selectedDayText]}>
                   {day
                     .toLocaleDateString('en-US', { weekday: 'short' })
                     .toUpperCase()}
                 </Text>
-                <Text
-                  style={[
-                    styles.dayNumber,
-                    selected && styles.selectedDayText,
-                  ]}
-                >
+
+                <Text style={[styles.dayNumber, selected && styles.selectedDayText]}>
                   {day.getDate()}
                 </Text>
               </TouchableOpacity>
@@ -177,56 +169,40 @@ export default function Calendar() {
 
       <View style={styles.legendRow}>
         <View style={styles.legendItem}>
-          <View style={[styles.legendColor, { backgroundColor: '#f0f0f0' }]} />
+          <View style={[styles.legendDot, { backgroundColor: '#ececec' }]} />
           <Text style={styles.legendText}>None</Text>
         </View>
 
         <View style={styles.legendItem}>
-          <View style={[styles.legendColor, { backgroundColor: '#f6de63' }]} />
+          <View style={[styles.legendDot, { backgroundColor: '#f2d65c' }]} />
           <Text style={styles.legendText}>Partial</Text>
         </View>
 
         <View style={styles.legendItem}>
-          <View style={[styles.legendColor, { backgroundColor: '#7bc98d' }]} />
+          <View style={[styles.legendDot, { backgroundColor: '#86cc91' }]} />
           <Text style={styles.legendText}>All Done</Text>
         </View>
       </View>
 
       <View style={styles.detailsCard}>
-        <View style={styles.dayHeaderRow}>
-          <View style={styles.dayHeaderLeft}>
-            <MaterialCommunityIcons
-              name="calendar-check-outline"
-              size={22}
-              color="#1d5d35"
-            />
-            <Text style={styles.selectedText}>
-              {currentDate.toLocaleDateString('en-US', {
-                weekday: 'long',
-                month: 'long',
-                day: 'numeric',
-              })}
-            </Text>
-          </View>
+        <View style={styles.dateHeader}>
+          <MaterialCommunityIcons
+            name="calendar-check-outline"
+            size={22}
+            color="#2a6a3e"
+          />
+          <Text style={styles.dateHeaderText}>
+            {currentDate.toLocaleDateString('en-US', {
+              weekday: 'long',
+              month: 'long',
+              day: 'numeric',
+            })}
+          </Text>
         </View>
 
         <View style={styles.progressRow}>
-          <View style={styles.progressCircleOuter}>
-            <View
-              style={[
-                styles.progressCircleInner,
-                {
-                  borderColor:
-                    completionPercent === 100
-                      ? '#4ea864'
-                      : completionPercent > 0
-                      ? '#e6c84b'
-                      : '#d4d4d4',
-                },
-              ]}
-            >
-              <Text style={styles.progressPercent}>{completionPercent}%</Text>
-            </View>
+          <View style={styles.progressCircle}>
+            <Text style={styles.progressPercent}>{completionPercent}%</Text>
           </View>
 
           <View style={styles.progressTextWrap}>
@@ -243,17 +219,17 @@ export default function Calendar() {
           </View>
         </View>
 
+        <View style={styles.divider} />
+
         {selectedSupplements.length === 0 ? (
           <Text style={styles.emptyText}>No vitamins scheduled for this day.</Text>
         ) : (
           <>
-            <View style={styles.divider} />
-
             {selectedSupplements.map((sup) => {
               const done = (sup.takenDates ?? []).includes(selectedDateKey);
 
               return (
-                <View key={sup.id} style={styles.todoRow}>
+                <View key={sup.id} style={styles.todoCard}>
                   <TouchableOpacity
                     onPress={() => toggleCheck(sup.id)}
                     style={[styles.checkbox, done && styles.checkboxDone]}
@@ -262,35 +238,29 @@ export default function Calendar() {
                   </TouchableOpacity>
 
                   <View style={styles.todoContent}>
-                    <Text
-                      style={[
-                        styles.todoName,
-                        done && styles.todoNameDone,
-                      ]}
-                    >
+                    <Text style={[styles.todoName, done && styles.todoNameDone]}>
                       {sup.name}
                     </Text>
 
                     <Text style={styles.todoSubtext}>
-                      {sup.times.length > 0 ? sup.times.join(', ') : 'Anytime'} •{' '}
+                      {sup.times.length > 0 ? sup.times.join(', ') : 'Anytime'}
+                    </Text>
+
+                    <Text style={styles.todoSubtext}>
                       {sup.withFood ? 'With Food' : 'No Food'}
                     </Text>
                   </View>
 
                   <View
                     style={[
-                      styles.smallStatusPill,
-                      done
-                        ? styles.smallStatusTaken
-                        : styles.smallStatusPending,
+                      styles.statusBadge,
+                      done ? styles.statusTaken : styles.statusPending,
                     ]}
                   >
                     <Text
                       style={[
-                        styles.smallStatusText,
-                        done
-                          ? styles.smallStatusTextTaken
-                          : styles.smallStatusTextPending,
+                        styles.statusBadgeText,
+                        done ? styles.statusTakenText : styles.statusPendingText,
                       ]}
                     >
                       {done ? 'Taken' : 'Pending'}
@@ -310,15 +280,15 @@ export default function Calendar() {
 
             <View
               style={[
-                styles.statusPill,
+                styles.bottomStatus,
                 completionPercent === 100
-                  ? styles.allDonePill
+                  ? styles.bottomStatusDone
                   : completionPercent > 0
-                  ? styles.partialPill
-                  : styles.nonePill,
+                  ? styles.bottomStatusPartial
+                  : styles.bottomStatusNone,
               ]}
             >
-              <Text style={styles.statusPillText}>
+              <Text style={styles.bottomStatusText}>
                 {completionPercent === 100
                   ? 'All Done'
                   : completionPercent > 0
@@ -329,24 +299,27 @@ export default function Calendar() {
           </>
         )}
       </View>
-    </View>
+    </ScrollView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
+  screen: {
     flex: 1,
-    backgroundColor: '#d9efd2',
-    paddingTop: 40,
+    backgroundColor: '#dff0d8',
+  },
+  content: {
+    paddingTop: 22,
+    paddingBottom: 40,
     alignItems: 'center',
   },
 
-  hero: {
-    width: '88%',
-    backgroundColor: '#bfe3b5',
-    borderRadius: 24,
-    paddingVertical: 18,
+  heroCard: {
+    width: '90%',
+    backgroundColor: '#c6e5bb',
+    borderRadius: 26,
     paddingHorizontal: 18,
+    paddingVertical: 16,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
@@ -356,19 +329,25 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
   },
-  heroIconBox: {
-    width: 52,
-    height: 52,
-    borderRadius: 16,
-    backgroundColor: '#d6edd0',
+  heroIcon: {
+    width: 56,
+    height: 56,
+    borderRadius: 18,
+    backgroundColor: '#dff0d8',
     justifyContent: 'center',
     alignItems: 'center',
     marginRight: 12,
   },
   heroTitle: {
-    fontSize: 24,
+    fontSize: 21,
     fontWeight: '800',
-    color: '#173a24',
+    color: '#1e3d2b',
+    marginBottom: 2,
+  },
+  heroSubtitle: {
+    fontSize: 13,
+    color: '#587262',
+    fontWeight: '500',
   },
   todayButton: {
     backgroundColor: '#ffffff',
@@ -377,63 +356,62 @@ const styles = StyleSheet.create({
     borderRadius: 18,
   },
   todayButtonText: {
-    color: '#244731',
-    fontWeight: '700',
     fontSize: 15,
+    fontWeight: '700',
+    color: '#2c4735',
   },
 
   weekCard: {
-    width: '88%',
-    backgroundColor: '#1f7a43',
+    width: '90%',
+    backgroundColor: '#2f8449',
     borderRadius: 28,
     padding: 18,
     marginBottom: 16,
   },
   weekLabel: {
-    color: '#d7f0d4',
+    color: '#daf1da',
     fontSize: 13,
     fontWeight: '700',
-    marginBottom: 8,
+    marginBottom: 10,
   },
   weekNav: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
     alignItems: 'center',
+    justifyContent: 'space-between',
     marginBottom: 18,
   },
   monthRangeText: {
-    color: '#ffffff',
     fontSize: 18,
     fontWeight: '800',
+    color: '#ffffff',
   },
   arrowButton: {
     width: 38,
     height: 38,
     borderRadius: 19,
-    backgroundColor: '#176537',
+    backgroundColor: '#26733f',
     justifyContent: 'center',
     alignItems: 'center',
   },
-
   dayRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
   },
   dayBubble: {
-    width: 42,
-    height: 62,
+    width: 44,
+    height: 64,
     borderRadius: 18,
-    backgroundColor: '#2b864d',
+    backgroundColor: '#3d9157',
     justifyContent: 'center',
     alignItems: 'center',
   },
   selectedDayBubble: {
-    backgroundColor: '#d2f0a7',
+    backgroundColor: '#d8efab',
   },
   dayLabel: {
     fontSize: 11,
     fontWeight: '700',
-    color: '#dff2db',
+    color: '#ddf4df',
     marginBottom: 4,
   },
   dayNumber: {
@@ -442,11 +420,11 @@ const styles = StyleSheet.create({
     color: '#ffffff',
   },
   selectedDayText: {
-    color: '#1d4e2a',
+    color: '#20482c',
   },
 
   legendRow: {
-    width: '88%',
+    width: '90%',
     flexDirection: 'row',
     justifyContent: 'center',
     marginBottom: 16,
@@ -454,37 +432,35 @@ const styles = StyleSheet.create({
   legendItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginHorizontal: 10,
+    marginHorizontal: 12,
   },
-  legendColor: {
+  legendDot: {
     width: 18,
     height: 18,
-    borderRadius: 5,
+    borderRadius: 6,
     marginRight: 6,
   },
   legendText: {
     fontSize: 13,
-    color: '#355340',
     fontWeight: '600',
+    color: '#445a4c',
   },
 
   detailsCard: {
-    width: '88%',
+    width: '90%',
     backgroundColor: '#ffffff',
     borderRadius: 28,
-    padding: 20,
+    padding: 18,
   },
-  dayHeaderRow: {
-    marginBottom: 14,
-  },
-  dayHeaderLeft: {
+  dateHeader: {
     flexDirection: 'row',
     alignItems: 'center',
+    marginBottom: 14,
   },
-  selectedText: {
-    fontSize: 17,
+  dateHeaderText: {
+    fontSize: 18,
     fontWeight: '800',
-    color: '#2a4031',
+    color: '#283f30',
     marginLeft: 8,
   },
 
@@ -493,70 +469,75 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: 14,
   },
-  progressCircleOuter: {
-    marginRight: 14,
-  },
-  progressCircleInner: {
-    width: 78,
-    height: 78,
-    borderRadius: 39,
+  progressCircle: {
+    width: 86,
+    height: 86,
+    borderRadius: 43,
     borderWidth: 8,
+    borderColor: '#6bb570',
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#f8fbf7',
+    marginRight: 14,
+    backgroundColor: '#f8fcf7',
   },
   progressPercent: {
-    fontSize: 20,
+    fontSize: 18,
     fontWeight: '800',
-    color: '#23362b',
+    color: '#24382b',
   },
   progressTextWrap: {
     flex: 1,
   },
   progressTitle: {
-    fontSize: 18,
+    fontSize: 17,
     fontWeight: '800',
-    color: '#21362a',
+    color: '#24372c',
     marginBottom: 4,
   },
   progressSubtitle: {
     fontSize: 14,
-    color: '#6c7b72',
+    color: '#738279',
     lineHeight: 20,
   },
 
   divider: {
     height: 1,
     backgroundColor: '#e7eee5',
-    marginBottom: 14,
+    marginBottom: 12,
   },
-
   emptyText: {
     textAlign: 'center',
-    color: '#8a8a8a',
+    fontSize: 15,
+    color: '#8b8b8b',
     fontStyle: 'italic',
-    fontSize: 16,
-    marginTop: 4,
+    marginTop: 8,
   },
 
-  todoRow: {
+  todoCard: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 16,
+    backgroundColor: '#fbfdfb',
+    borderRadius: 20,
+    paddingHorizontal: 14,
+    paddingVertical: 14,
+    marginBottom: 12,
+    borderWidth: 1,
+    borderColor: '#eef3ed',
   },
   checkbox: {
     width: 30,
     height: 30,
     borderRadius: 8,
     borderWidth: 2,
-    borderColor: '#2d8a4c',
+    borderColor: '#3c9a59',
     backgroundColor: '#ffffff',
-    alignItems: 'center',
     justifyContent: 'center',
+    alignItems: 'center',
     marginRight: 12,
   },
   checkboxDone: {
-    backgroundColor: '#2d8a4c',
+    backgroundColor: '#4d9e5f',
+    borderColor: '#4d9e5f',
   },
   checkmark: {
     color: '#ffffff',
@@ -569,77 +550,77 @@ const styles = StyleSheet.create({
   todoName: {
     fontSize: 17,
     fontWeight: '800',
-    color: '#1b2d21',
+    color: '#24352b',
     marginBottom: 3,
   },
   todoNameDone: {
     textDecorationLine: 'line-through',
-    color: '#7b8b81',
+    color: '#7f8c84',
   },
   todoSubtext: {
     fontSize: 14,
-    color: '#67776d',
+    color: '#77837b',
     marginBottom: 2,
   },
 
-  smallStatusPill: {
-    borderRadius: 14,
+  statusBadge: {
     paddingHorizontal: 12,
     paddingVertical: 8,
-    marginLeft: 8,
+    borderRadius: 16,
+    marginLeft: 10,
   },
-  smallStatusTaken: {
-    backgroundColor: '#d8eed8',
+  statusTaken: {
+    backgroundColor: '#d9efda',
   },
-  smallStatusPending: {
-    backgroundColor: '#f4e7b9',
+  statusPending: {
+    backgroundColor: '#f4e7b8',
   },
-  smallStatusText: {
+  statusBadgeText: {
     fontSize: 13,
     fontWeight: '700',
   },
-  smallStatusTextTaken: {
-    color: '#2c7d47',
+  statusTakenText: {
+    color: '#367d48',
   },
-  smallStatusTextPending: {
+  statusPendingText: {
     color: '#8c6c10',
   },
 
   markAllButton: {
+    backgroundColor: '#238846',
+    borderRadius: 24,
+    paddingVertical: 16,
     marginTop: 6,
-    backgroundColor: '#1f7a43',
-    borderRadius: 20,
-    paddingVertical: 15,
     flexDirection: 'row',
     justifyContent: 'center',
     alignItems: 'center',
     gap: 8,
   },
   markAllButtonText: {
-    color: '#ffffff',
-    fontSize: 16,
+    fontSize: 17,
     fontWeight: '800',
+    color: '#ffffff',
   },
 
-  statusPill: {
+  bottomStatus: {
     alignSelf: 'flex-start',
-    borderRadius: 16,
     paddingHorizontal: 16,
     paddingVertical: 10,
+    borderRadius: 16,
     marginTop: 14,
   },
-  nonePill: {
-    backgroundColor: '#efefef',
+  bottomStatusDone: {
+    backgroundColor: '#8dcb94',
   },
-  partialPill: {
-    backgroundColor: '#f6de63',
+  bottomStatusPartial: {
+    backgroundColor: '#f2d65c',
   },
-  allDonePill: {
-    backgroundColor: '#7bc98d',
+  bottomStatusNone: {
+    backgroundColor: '#ececec',
   },
-  statusPillText: {
+  bottomStatusText: {
     fontSize: 14,
     fontWeight: '800',
-    color: '#2a3a2f',
+    color: '#2b3c31',
   },
 });
