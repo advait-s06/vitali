@@ -1,14 +1,6 @@
 import React, { createContext, useContext, useState } from 'react';
 import type { ImageSourcePropType } from 'react-native';
-
-export type Supplement = {
-  id: string;
-  name: string;
-  days: string[];
-  times: string[];
-  withFood: boolean;
-  takenToday: boolean;
-};
+import type { Supplement } from './services/supplements';
 
 type VitaminsContextType = {
   supplements: Supplement[];
@@ -41,6 +33,7 @@ export function VitaminsProvider({ children }: { children: React.ReactNode }) {
     </VitaminsContext.Provider>
   );
 }
+
 export function useVitamins() {
   const context = useContext(VitaminsContext);
 
